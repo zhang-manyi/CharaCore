@@ -1,0 +1,9 @@
+# Training environment verified with Python 3.12 on Windows.
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.5.1+cu121
+transformers==4.57.3
+accelerate==1.12.0
+peft==0.18.0
+trl==0.26.2
+datasets==4.4.2
+bitsandbytes==0.49.0
