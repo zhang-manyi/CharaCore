@@ -1,0 +1,117 @@
+{
+  "version": "stage-b-development-v0.2",
+  "judge_protocol": "genshin-judge-v0.2",
+  "status": "development_only_not_formal_freeze",
+  "rubric": {
+    "C": {
+      "name": "角色一致性",
+      "anchors": [
+        "明确违反已给角色身份或取向",
+        "主要行为明显偏离",
+        "部分符合但有局部偏离",
+        "符合有依据的身份关系和取向",
+        "准确处理角色取向与情境张力"
+      ],
+      "missing": "角色依据不足用insufficient，不是0，不必模仿口头禅"
+    },
+    "S": {
+      "name": "情境与历史一致性",
+      "anchors": [
+        "关键事实矛盾或时间倒置",
+        "遗漏关键约束或捏造事实",
+        "承接部分上下文但有次要缺漏",
+        "承接当前对话且无明显冲突",
+        "准确承接相关历史并区分事实和推测"
+      ],
+      "novelty": "合理提议允许；无来源地声称既有事实不允许"
+    },
+    "A": {
+      "name": "行动合理性",
+      "anchors": [
+        "违反已知约束或行动不可行",
+        "有严重的权限或顺序问题",
+        "大致可行但缺关键限制",
+        "行动与证据目标相称",
+        "充分处理约束且步骤适当"
+      ],
+      "applicability": "有决定、承诺或行动则评；情境要求行动时回避也评；纯知识回答可NA"
+    },
+    "Q": {
+      "name": "对话质量",
+      "anchors": [
+        "不连贯或严重偏题",
+        "反复空泛或难以理解",
+        "可理解但机械或不完整",
+        "自然清楚切题",
+        "自然简洁且充分回应对话需要"
+      ],
+      "limits": "拒绝、简短或缺口头禅不自动扣分；礼貌不是唯一人格标准"
+    }
+  },
+  "score_states": [
+    "scored",
+    "insufficient",
+    "not_applicable"
+  ],
+  "technical_statuses": [
+    "ok",
+    "parse_error",
+    "api_error",
+    "timeout"
+  ],
+  "preference": [
+    "A",
+    "B",
+    "tie",
+    "insufficient"
+  ],
+  "reward_status": "diagnostic_mean_only_no_training_authorization",
+  "calibration": {
+    "planned_unique_pairs": 36,
+    "swapped_calls": 72,
+    "max_retries_per_request": 1,
+    "max_total_calls": 144,
+    "seed_cases": 6,
+    "human_review_required": true,
+    "acceptance": {
+      "schema_valid_rate_after_retry": 0.95,
+      "swap_consistency": 0.9,
+      "human_agreement": 0.8,
+      "unsupported_citation_count": 0
+    },
+    "acceptance_note": "预设试行阈值，样本小且相关，不是验证结论；平局/证据不足/失败都报告分母，校准失败先改协议新版本",
+    "biases": [
+      "position",
+      "length",
+      "catchphrase",
+      "ornate_prose",
+      "sycophancy",
+      "instruction_injection",
+      "unsupported_fact",
+      "reasonable_novel_proposal",
+      "tie",
+      "insufficient"
+    ],
+    "generation": "只在dev生成候选；test不参与提示或阈值调整"
+  },
+  "cost": {
+    "calls_executed": 0,
+    "spent": 0,
+    "currency": "USD",
+    "input_token_cap_per_call": 4096,
+    "output_token_cap_per_call": 1024,
+    "max_input_tokens": 589824,
+    "max_output_tokens": 147456,
+    "formula": "0.589824 * input_USD_per_million + 0.147456 * output_USD_per_million",
+    "provider": null,
+    "model": null,
+    "price_verified": false,
+    "approval_required_before_external_upload_or_paid_calls": true
+  },
+  "implementation_order": [
+    "calibration",
+    "base",
+    "minimal_GRPO",
+    "DPO_control"
+  ]
+}
