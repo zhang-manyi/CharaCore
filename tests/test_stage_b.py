@@ -106,6 +106,7 @@ class JudgeTests(unittest.TestCase):
     def good(self):
         dimension = dict(status="scored", score=3, reason="引用当前公开输入", evidence_ids=["cut:L1"])
         return dict(protocol=judge.PROTOCOL, winner="tie", reason="同样可行",
+                    preference_evidence_ids=["cut:L1"],
                     scores={side: {dim: copy.deepcopy(dimension) for dim in judge.DIMS}
                             for side in ("A", "B")})
 
