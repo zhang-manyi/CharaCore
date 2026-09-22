@@ -7,7 +7,7 @@ from characore.protocol import digest
 
 
 class LocalPolicy:
-    def __init__(self, base, device="cuda", quantize=False, max_new_tokens=192, seed=17):
+    def __init__(self, base, device="cuda", quantize=False, max_new_tokens=192, seed=17, precision="auto"):
         os.environ["HF_HUB_OFFLINE"] = "1"
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
@@ -23,7 +23,7 @@ class LocalPolicy:
 
         torch.set_num_threads(4)
         set_seed(seed)
-        self.model, self.tokenizer = load_model(str(base), device=device, quantize=quantize)
+        self.model, self.tokenizer = load_model(str(base), device=device, quantize=quantize, precision=precision)
         self.model.eval()
         self.model.config.use_cache = True
         self.max_new_tokens = max_new_tokens

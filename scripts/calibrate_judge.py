@@ -21,21 +21,30 @@ def main():
     parser.add_argument("--results", type=Path)
     parser.add_argument("--human", type=Path)
     parser.add_argument("--base", type=Path)
+    parser.add_argument("--backend", choices=("local", "api"), default="local")
+    parser.add_argument("--env-file", type=Path)
+    parser.add_argument("--allow-api", action="store_true")
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--limit", type=int, help="Smoke subset; uncalled requests remain uncalled")
     args = parser.parse_args()
     verify_packet(args.packet)
-    if args.mode == "run" and not args.base:
+    if args.mode == "run" and args.backend == "local" and not args.base:
         parser.error("run requires --base local directory")
+    if args.mode == "run" and args.backend == "api" and not args.allow_api:
+        parser.error("API run requires --allow-api")
     if args.limit is not None and args.limit < 1:
         parser.error("limit must be positive")
     args.output.mkdir(parents=True, exist_ok=False)
     try:
         results = args.results
         if args.mode == "run":
-            from characore.local_policy import LocalPolicy
-            policy = LocalPolicy(args.base, device=args.device, max_new_tokens=1024)
-            metadata = dict(policy.metadata, claim="Local candidate judge, reliability not established")
+            if args.backend == "api":
+                from characore.api_judge import APIJudge
+                policy = APIJudge(args.env_file, allow_calls=args.allow_api)
+            else:
+                from characore.local_policy import LocalPolicy
+                policy = LocalPolicy(args.base, device=args.device, max_new_tokens=1024)
+            metadata = dict(policy.metadata, claim="Candidate judge, reliability not established")
             dump(args.output / "model.json", metadata)
             requests = {r["id"]: r for r in read(args.packet / "judge/requests.json")}
             schedule = read(args.packet / "audit/request_schedule.json")["request_ids"]

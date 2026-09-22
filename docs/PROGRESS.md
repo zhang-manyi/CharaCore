@@ -29,12 +29,13 @@
 - **正式基座角色评测：** 原神输入证据与独立留出尚未验收；若用LLM裁判，还需实际人工/模型校准和明确模型配置、调用授权。设计任务与原神原作表现分别报告。
 - **最小GRPO：** 单步动作的框架接入、奖励失败处理与微型更新已验证；还缺真实任务训练输入、适用于本任务的实际人工/模型校准、奖励组合验收及真实模型资源实测。整段多轮轨迹GRPO未实现。Windows应用控制阻止bitsandbytes DLL（WinError4551），当前不能认定4-bit可用；CPU微型更新不受影响。
 
-当前继续禁止外部API、数据上传、GPU租赁和大模型下载。不自动提交、推送或创建远程；新运行使用新目录。
+边界更新：集群策略模型采用ModelScope `Qwen/Qwen3-8B`；仓库裁判示例采用OpenAI官方地址 `https://api.openai.com/v1` 和 `gpt-6-astra`。代码默认不请求API，集群显式启用后发送裁判可见材料；不上传权重或密钥。本地本轮没有调用外部裁判、下载权重或训练真实模型。GPU租赁仍未授权；新运行使用新目录。
 
 2026-09-22 发布授权：用户明确要求将当前代码、测试、审核材料和文档提交并推送到既有 `origin/main`，供集群拉取。`runs/`、`data/raw/`、模型权重和 `.env` 继续留在本地；集群首次拉取不包含本地校准包、运行结果或模型。最近46项单元测试通过；此次仅补充发布记录，不启动训练。
 
 ## 当前产物入口
 
+- [集群快速开始](CLUSTER_QUICKSTART.md)、[密钥配置模板](../.env.example)、[API连通性检查](../scripts/check_judge_api.py)。本轮 `runs/cluster_api_20260922_01/`：单进程/双进程微型更新、测试与保护核验；API只用离线传输夹具，不含真实密钥或远程调用结果。
 - [GRPO本地接入说明](GRPO_LOCAL.md)、[TRL训练入口](../scripts/train_grpo.py)、[裁判执行/统计入口](../scripts/calibrate_judge.py)。本轮产物 `runs/grpo_20260922_01/`：`tiny_grpo_01/verification.json`、`local_judge_smoke_01/report.json`及`calls/`原始失败、`delivery_report.json`。
 - [运行入口](../scripts/run_agent.py)、[任务环境](../characore/agent.py)、[本地推理](../characore/local_policy.py)、[机制测试](../tests/test_agent.py)；启动与参数见[README](../README.md)。
 - 本轮本地产物：`runs/agent_20260922_01/`。`mechanics_01/verification.json`记录三种脚本验证，各子目录有`trajectory.json`；`qwen3_1p7b_01/episode/trajectory.json`记录真实失败；`delivery_report.json`记录运行成本、环境与保存检查。
@@ -43,7 +44,16 @@
 - [v0.3人工校准流程](GENSHIN_STAGE_B_CALIBRATION.md)；当前材料 runs/stage_b_20260922/calibration_v03_02/，开发快照 dev_snapshot_v03_01/。人工只读取human材料并复制空白表填写，首轮锁定前不看audit预期。
 - [原神初步选型](GENSHIN_PILOT.md)、[CoSER选型](DATA_SELECTION.md) 和 [v0.2协议](GENSHIN_STAGE_B.md) 保留为来源与版本记录，不作为当前实施清单。
 
-## 本轮GRPO框架接入与实际验证
+## 本轮API与双进程适配
+
+- 策略固定为ModelScope Qwen3-8B；`.env.example`中的裁判配置为OpenAI官方地址`https://api.openai.com/v1`及`gpt-6-astra`。实际账户权限和API调用尚待验证，示例配置不等于校准通过。
+- `.env`只做字面配置解析，不执行shell、不展开变量；环境变量优先，密钥不进入日志、元数据或Git。API支持Chat Completions/Responses，不自动附加temperature/reasoning；显式`--allow-api`才发送材料。单请求检查不依赖本地原神缓存，可以直接在集群首次克隆后执行。
+- V100按compute capability选择FP16，不能以可能支持软件模拟的`is_bf16_supported()`返回True推断原生BF16。新增`--precision`，保留旧DPO默认行为；Agent和GRPO使用新选择器。
+- GRPO按LOCAL_RANK绑定GPU，microbatch降为1，使用梯度累积与完整生成组；API裁判不占本地GPU。结果写入独立rank目录；奖励先跨rank合并校验，任何rank缺失/失败/组内输入不一致则同步中止更新，同分不制造差异。两张卡使用DDP，不等同于单个64GB显存池。
+- 实际验证：57项单元测试通过；单进程CPU微型更新2步通过。Windows原生torchrun因PyTorch未构建libuv在rendezvous前失败；改用项目内Gloo/FileStore测试启动器，两进程各2步更新、12个LoRA张量变化、梯度有限非零、冻结参考未变、保存重载误差0；跨rank适配器参数与保存哈希一致。仅CPU机制结果，未验证真实双V100显存/吞吐，也未调用外部裁判API。官方GPT-6 Astra文档已核对模型ID存在，实际账户权限尚待验证。
+- 当前可在集群执行更新代码→填`.env`→配置检查/一次API试调用→下载Qwen3-8B→FP16真实基线→CPU双进程检查。任务专属校准、人审和训练输入仍待准备，不将单请求连通性或微型更新冒充校准通过。
+
+## 上一轮GRPO框架接入与实际验证（历史）
 
 - 参考已安装TRL 0.26.2源码，复用GRPOTrainer和PEFT；未手写优势估计、KL、裁剪或优化器。现有Transformers不满足TRL原生tools接口的≥5要求，自定义rollout入口依赖vLLM，因此先实现固定状态下的一步动作GRPO，完整任务仍用已有CLI评测，不冒充整段轨迹训练。
 - 新增校准结果汇总：核验请求、原始响应、模型身份、独立人审、锁定首轮与仲裁绑定；统计AB/BA、人工一致率、引用复核、分组/类别/位置/维度分布，缺失保持pending。既有36对、空白人审表及旧包均未修改。

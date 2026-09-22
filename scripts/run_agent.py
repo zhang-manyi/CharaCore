@@ -22,6 +22,7 @@ def main():
     run.add_argument("--base", type=Path)
     run.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     run.add_argument("--quantize", action="store_true")
+    run.add_argument("--precision", choices=("auto", "fp16", "bf16", "fp32"), default="auto")
     run.add_argument("--max-new-tokens", type=int, default=192)
     run.add_argument("--seed", type=int, default=17)
     check = subs.add_parser("verify")
@@ -63,7 +64,7 @@ def main():
             if args.scenario != "success":
                 raise ValueError("--scenario selects scripted sequences only")
             from characore.local_policy import LocalPolicy
-            policy = LocalPolicy(args.base, args.device, args.quantize, args.max_new_tokens, args.seed)
+            policy = LocalPolicy(args.base, args.device, args.quantize, args.max_new_tokens, args.seed, args.precision)
         else:
             policy = ScriptedPolicy(args.scenario)
         trace = run_episode(policy, args.output / "episode", args.max_steps)

@@ -19,6 +19,8 @@
 
 ## 本地使用
 
+集群使用 ModelScope Qwen3-8B、双 V100 和 GPT API 裁判，按[集群快速开始](docs/CLUSTER_QUICKSTART.md)操作。复制 `.env.example` 到被忽略的 `.env` 填写 OpenAI API 密钥；示例地址为 `https://api.openai.com/v1`，API 默认不调用，须显式启用。支持V100 FP16选择和按rank独立输出；双进程仅已完成CPU机制验证，真实双V100训练待集群实测。
+
 最小离线闭环只需 Python 标准库，不必安装训练依赖。在根目录执行（输出目录必须尚不存在）：
 
 ~~~powershell

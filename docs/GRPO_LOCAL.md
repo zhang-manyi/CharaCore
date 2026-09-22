@@ -1,5 +1,7 @@
 # 本地 GRPO 接入与校准使用
 
+双V100、Qwen3-8B和API裁判的新入口见[集群快速开始](CLUSTER_QUICKSTART.md)。下文保留初版本地裁判验证；新增API后可用`--judge-backend api --allow-api`替代本地`--judge-base`，密钥从`.env`读取。
+
 当前复用 **TRL 0.26.2 `GRPOTrainer` + PEFT 0.18.0**。项目仅实现任务数据、环境执行和裁判奖励适配，采样、分组优势、KL、反向传播和优化器由 TRL 负责；没有另写 GRPO 算法或分布式训练框架。
 
 实现依据为已安装版本的 `trl/trainer/grpo_trainer.py`、`grpo_config.py`，框架入口见 [TRL GRPOTrainer](https://huggingface.co/docs/trl/v0.26.2/en/grpo_trainer)，算法来源为 [DeepSeekMath](https://arxiv.org/abs/2402.03300)。当前单机小试沿用已验证环境，不引入需要另一套资源与部署的训练栈。

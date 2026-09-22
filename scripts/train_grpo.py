@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import sys
 import traceback
+from contextlib import nullcontext
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -20,6 +21,7 @@ from characore.grpo_data import load_training_suite, verify_calibration
 from characore.grpo_rewards import ActionReward, REWARD_SPEC, restore, transition, validate_groups
 from characore.judge_runner import identity, judge_identity
 from characore.protocol import digest
+from characore.precision import select_precision
 
 
 def preflight(args):
@@ -39,6 +41,7 @@ def run(args, checked):
     from transformers import set_seed
     from trl import GRPOConfig, GRPOTrainer
     from scripts.train_dpo import load_model
+    from characore.distributed_rewards import DistributedReward
 
     if importlib.metadata.version("trl") != "0.26.2":
         raise ValueError("this adapter is verified against TRL 0.26.2")
@@ -47,11 +50,20 @@ def run(args, checked):
     group_size = 4 if args.tiny else 2
     judge_policy = None
     if not args.tiny:
-        from characore.local_policy import LocalPolicy
-        judge_policy = LocalPolicy(args.judge_base, device="cpu", max_new_tokens=1024)
+        if args.judge_backend == "api":
+            from characore.api_judge import APIJudge
+            judge_policy = APIJudge(args.env_file, allow_calls=args.allow_api)
+        else:
+            from characore.local_policy import LocalPolicy
+            judge_policy = LocalPolicy(args.judge_base, device="cpu", max_new_tokens=1024)
         if judge_identity(judge_policy.metadata) != checked[2]["judge_identity"]:
             raise ValueError("judge model/decoding/device differs from calibrated configuration")
-    model, tokenizer = load_model(args.base, tiny=args.tiny, device=args.device, quantize=args.quantize)
+    load_device = f"cuda:{args.local_rank}" if args.device == "cuda" else "cpu"
+    if args.device == "cuda":
+        torch.cuda.set_device(args.local_rank)
+    precision = select_precision(load_device, args.precision)
+    model, tokenizer = load_model(args.base, tiny=args.tiny, device=load_device,
+                                  quantize=args.quantize, precision=precision)
     model.config.use_cache = True
     if args.tiny:
         model.save_pretrained(args.output / "tiny_base")
@@ -64,7 +76,7 @@ def run(args, checked):
             values = [sum(ids) / max(len(ids), 1) / len(tokenizer) for ids in completion_ids]
             reward_batches.append(dict(completions=completions, token_ids=completion_ids, values=values))
             dump(args.output / f"sampled_rewards_{len(reward_batches):03d}.json", reward_batches[-1])
-            return validate_groups(values, group_size)
+            return values  # The wrapper validates groups across all ranks.
 
         targets = ["c_attn", "c_proj"]
         completion_length = 8
@@ -77,16 +89,19 @@ def run(args, checked):
                 raise ValueError("prompt too long; refusing silent truncation")
             rows.append(dict(prompt=prompt, prefix=row["prefix"], anchor=row["anchor"]))
         rubric = json.loads((ROOT / "experiments/genshin_stage_b_v03/evaluation_plan.json").read_text(encoding="utf8"))["rubric"]
-        reward = ActionReward(judge_policy, args.output / "reward_calls", rubric, group_size)
+        reward = ActionReward(judge_policy, args.output / "reward_calls", rubric, group_size, distributed=True)
         targets, completion_length = ["q_proj", "v_proj"], 192
+    reward = DistributedReward(reward, group_size)
     cfg = GRPOConfig(output_dir=str(args.output / "trainer"), max_steps=args.steps,
-                     per_device_train_batch_size=group_size, gradient_accumulation_steps=1,
+                     per_device_train_batch_size=1, gradient_accumulation_steps=group_size,
+                     generation_batch_size=group_size * args.world_size,
                      num_generations=group_size, max_completion_length=completion_length,
                      learning_rate=5e-4 if args.tiny else 5e-5, beta=.04, loss_type="grpo",
                      scale_rewards="group", temperature=1.0, top_p=1.0, top_k=0,
                      logging_steps=1, save_strategy="no", eval_strategy="no", report_to="none",
                      seed=args.seed, data_seed=args.seed, use_cpu=args.device == "cpu",
-                     bf16=args.device == "cuda", fp16=False, gradient_checkpointing=not args.tiny,
+                     bf16=precision == "bf16", fp16=precision == "fp16", gradient_checkpointing=not args.tiny,
+                     ddp_find_unused_parameters=False,
                      gradient_checkpointing_kwargs={"use_reentrant": False},
                      dataloader_pin_memory=False, remove_unused_columns=False, disable_tqdm=True,
                      mask_truncated_completions=False, use_vllm=False)
@@ -112,7 +127,8 @@ def run(args, checked):
 
     def logits():
         policy.eval()
-        with torch.no_grad():
+        amp = torch.autocast("cuda", dtype=torch.float16 if precision == "fp16" else torch.bfloat16) if precision != "fp32" else nullcontext()
+        with torch.no_grad(), amp:
             return policy(**probe).logits.detach().float().cpu()
 
     initial = logits()
@@ -143,6 +159,7 @@ def run(args, checked):
     dump(args.output / "manifest.json", dict(framework="TRL GRPOTrainer + PEFT", trl="0.26.2",
          source_sha256={p: digest(ROOT / p) for p in ("scripts/train_grpo.py", "characore/grpo_rewards.py", "characore/grpo_data.py", "characore/agent.py")},
          tiny=args.tiny, claim="software mechanics only" if args.tiny else "development next-action GRPO, not full-episode GRPO or held-out improvement",
+         rank=args.rank, world_size=args.world_size, device=load_device, precision=precision,
          suite_sha256=None if args.tiny else digest(args.suite / "freeze.json"),
          calibration_report=None if args.tiny else checked[2],
          judge_metadata=None if args.tiny else judge_policy.metadata,
@@ -162,6 +179,14 @@ def run(args, checked):
         raise AssertionError("no finite nonzero gradient/update evidence")
     if not torch.equal(ref_before, ref_after):
         raise AssertionError("frozen reference changed")
+    if torch.distributed.is_initialized():
+        import hashlib
+        signature = hashlib.sha256(b"".join(p.detach().cpu().float().contiguous().numpy().tobytes()
+                                            for p in trainables.values())).hexdigest()
+        signatures = [None] * args.world_size
+        torch.distributed.all_gather_object(signatures, signature)
+        if len(set(signatures)) != 1:
+            raise AssertionError("DDP adapter parameters differ across ranks")
     policy.save_pretrained(args.output / "adapter")
     tokenizer.save_pretrained(args.output / "adapter")
     policy = PeftModel.from_pretrained(policy.unload(), args.output / "adapter", is_trainable=False)
@@ -169,6 +194,8 @@ def run(args, checked):
     if not torch.allclose(trained, restored, atol=1e-5, rtol=1e-5):
         raise AssertionError("adapter save/reload mismatch")
     proof = dict(software_mechanism_only=args.tiny, optimizer_steps=trainer.state.global_step,
+                 rank=args.rank, world_size=args.world_size,
+                 ddp_adapter_parameters_equal=True if args.world_size > 1 else None,
                  changed_tensors=changed, gradients=grads, reference_logits_unchanged=True,
                  probe_logit_max_delta=(trained-initial).abs().max().item(),
                  reload_logit_max_error=(restored-trained).abs().max().item(),
@@ -185,21 +212,48 @@ def main():
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--base")
     parser.add_argument("--judge-base")
+    parser.add_argument("--judge-backend", choices=("local", "api"), default="local")
+    parser.add_argument("--env-file", type=Path)
+    parser.add_argument("--allow-api", action="store_true")
     parser.add_argument("--suite", type=Path)
     parser.add_argument("--packet", type=Path)
     parser.add_argument("--judge-results", type=Path)
     parser.add_argument("--human", type=Path)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--quantize", action="store_true")
+    parser.add_argument("--precision", choices=("auto", "fp16", "bf16", "fp32"), default="auto")
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--seed", type=int, default=17)
     args = parser.parse_args()
     if args.steps < 1:
         parser.error("steps must be positive")
-    if args.tiny and (args.device != "cpu" or args.quantize or any((args.base,args.judge_base,args.suite,args.packet,args.human,args.judge_results))):
+    if args.tiny and (args.device != "cpu" or args.quantize or args.allow_api or args.judge_backend != "local" or any((args.base,args.judge_base,args.suite,args.packet,args.human,args.judge_results))):
         parser.error("tiny mode is CPU-only random model; cannot mix real inputs")
-    if not args.tiny and not all((args.base,args.judge_base,args.suite,args.packet,args.human,args.judge_results)):
-        parser.error("real mode requires base, judge-base, suite, packet, judge-results and human")
+    if not args.tiny and not all((args.base,args.suite,args.packet,args.human,args.judge_results)):
+        parser.error("real mode requires base, suite, packet, judge-results and human")
+    if not args.tiny and args.judge_backend == "local" and not args.judge_base:
+        parser.error("local judge requires --judge-base")
+    if not args.tiny and args.judge_backend == "api" and not args.allow_api and not args.preflight_only:
+        parser.error("API reward training requires --allow-api")
+    args.world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    args.rank = int(os.environ.get("RANK", "0"))
+    args.local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    if args.world_size > 1 and args.quantize:
+        parser.error("multi-process 4-bit path is not verified; use FP16 LoRA")
+    if args.world_size > 1:
+        from accelerate import PartialState
+        distributed = PartialState(cpu=args.device == "cpu")
+        creation_error = [None]
+        if args.rank == 0:
+            try:
+                args.output.mkdir(parents=True, exist_ok=False)
+            except Exception as exc:
+                creation_error[0] = type(exc).__name__
+        import torch.distributed as dist
+        dist.broadcast_object_list(creation_error, src=0)
+        if creation_error[0]:
+            raise ValueError("new shared output directory required; creation failed")
+        args.output = args.output / f"rank_{args.rank:04d}"
     args.output.mkdir(parents=True, exist_ok=False)
     dump(args.output / "invocation.json", {k: str(v) if isinstance(v, Path) else v for k,v in vars(args).items()})
     try:

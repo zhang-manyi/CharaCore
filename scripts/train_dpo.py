@@ -20,9 +20,16 @@ def write_json(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def load_model(base, tiny=False, quantize=False, device="cpu"):
+def load_model(base, tiny=False, quantize=False, device="cpu", precision=None):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+    cuda = torch.device(device).type == "cuda"
+    if precision is None:
+        dtype = torch.bfloat16 if cuda else torch.float32  # Preserve the existing DPO configuration.
+    else:
+        from characore.precision import select_precision
+        chosen = select_precision(device, precision)
+        dtype = {"fp16": torch.float16, "bf16": torch.bfloat16, "fp32": torch.float32}[chosen]
     if tiny:
         from tokenizers import Tokenizer
         from tokenizers.models import WordLevel
@@ -37,15 +44,15 @@ def load_model(base, tiny=False, quantize=False, device="cpu"):
                     resid_pdrop=0.0, embd_pdrop=0.0, attn_pdrop=0.0))
     else:
         tokenizer = AutoTokenizer.from_pretrained(base, local_files_only=True)
-        options = {"local_files_only": True, "torch_dtype": torch.bfloat16 if device == "cuda" else torch.float32,
+        options = {"local_files_only": True, "torch_dtype": dtype,
                    "attn_implementation": "sdpa"}
         if quantize:
-            if device != "cuda":
+            if not cuda:
                 raise ValueError("4-bit experiment requires CUDA")
             options["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True,
                     bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True,
-                    bnb_4bit_compute_dtype=torch.bfloat16)
-            options["device_map"] = {"": 0}
+                    bnb_4bit_compute_dtype=dtype)
+            options["device_map"] = {"": torch.device(device).index or 0}
         model = AutoModelForCausalLM.from_pretrained(base, **options)
     if not quantize:
         model.to(device)

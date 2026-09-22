@@ -71,12 +71,13 @@ def validate_groups(values, group_size):
 class ActionReward:
     __name__ = "calibrated_action_reward"
 
-    def __init__(self, judge_policy, output, rubric, group_size=2):
+    def __init__(self, judge_policy, output, rubric, group_size=2, distributed=False):
         self.judge = judge_policy
         self.output = Path(output)
         self.output.mkdir(parents=True, exist_ok=False)
         self.rubric = rubric
         self.group_size = group_size
+        self.distributed = distributed
         self.batch = 0
 
     def __call__(self, completions, prefix, anchor, **kwargs):
@@ -87,9 +88,9 @@ class ActionReward:
         try:
             if not len(completions) == len(prefix) == len(anchor):
                 raise ValueError("reward batch alignment mismatch")
-            if len(completions) % self.group_size:
+            if not self.distributed and len(completions) % self.group_size:
                 raise UnusableReward("incomplete GRPO sampling group")
-            for start in range(0, len(completions), self.group_size):
+            for start in range(0, 0 if self.distributed else len(completions), self.group_size):
                 keys = {identity(dict(prefix=prefix[i], anchor=anchor[i]))
                         for i in range(start, start + self.group_size)}
                 if len(keys) != 1:
@@ -116,7 +117,7 @@ class ActionReward:
                     results.append(call_judge(request, self.judge, path / request["id"])["final"])
                 values.append(.8 * pair_reward(*results) + .2 * progress)
             dump(path / "rewards.json", dict(values=values, spec=REWARD_SPEC))
-            return validate_groups(values, self.group_size)
+            return values if self.distributed else validate_groups(values, self.group_size)
         except Exception as exc:
             dump(path / "failure.json", dict(type=type(exc).__name__, message=str(exc), partial_rewards=values))
             raise
