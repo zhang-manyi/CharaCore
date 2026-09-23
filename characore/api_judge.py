@@ -123,7 +123,9 @@ class APIJudge:
             if self.json_mode:
                 payload["response_format"] = {"type": "json_object"}
         req = request.Request(self.endpoint, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-                              headers={"Content-Type": "application/json", "Authorization": "Bearer " + self._key},
+                              headers={"Content-Type": "application/json",
+                                       "Authorization": "Bearer " + self._key,
+                                       "User-Agent": "CharaCore-judge/0.1"},
                               method="POST")
         self.calls += 1
         body_text = None
