@@ -81,7 +81,9 @@ torchrun --standalone --nproc_per_node=2 scripts/train_grpo.py \
   --tiny --steps 2 --output runs/cluster_ddp_tiny_01
 ```
 
-检查两个 `rank_0000/verification.json`、`rank_0001/verification.json` 的 `world_size=2`、`optimizer_steps=2`、`ddp_adapter_parameters_equal=true` 及原来的五项更新证明。这个检查证明进程同步和CPU训练，不证明V100显存或吞吐。本机已用Gloo/FileStore验证两进程更新；Windows torchrun/TCPStore因libuv构建限制未运行成功，不建议把该Windows启动方式照搬到Linux。
+检查两个 `rank_0000/verification.json`、`rank_0001/verification.json` 的 `world_size=2`、`optimizer_steps=2`、`ddp_adapter_parameters_equal=true` 及原来的五项更新证明。这个检查证明进程同步和CPU训练，不证明V100显存或吞吐。
+
+这一步请务必在集群实际执行：开发机的 Windows 应用控制阻止了 pyarrow 的 DLL，而 `datasets` 依赖它，因此本机当前无法执行任何 TRL 代码路径。此前的双进程更新曾在本机用 Gloo/FileStore 验证通过，但那是该限制出现之前的记录，不能替代本次集群验证。Windows torchrun/TCPStore 因 libuv 构建限制未成功，不要把该 Windows 启动方式照搬到 Linux。
 
 ## 6. 用桩裁判跑通完整训练路径
 
