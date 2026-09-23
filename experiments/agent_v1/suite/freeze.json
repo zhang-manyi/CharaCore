@@ -4,8 +4,8 @@
   "reward_spec_sha256": "4710476d4269796818071155127541d7c4601cb7db844d3e75a115238659e5fa",
   "created_by": "build_agent_suite",
   "files": {
-    "train.json": "3d59521faeb968b6aeff8b617e761b0f104a8578ad14b25be773d42a582d89ae",
-    "eval.json": "5705bc726ab3ece7afc660cbae492e3adc4d49d1bd44a457d210b416be5edf39"
+    "train.json": "9760ad5db5bc67d0ff2b9eb713dfde7372acd3aa9d8e05dab26b0f9d5bb80bf2",
+    "eval.json": "e49e71b4844871abd37e59dd61f04c6967c2f952475acaaba94a91862adfac16"
   },
   "claim": "Development checkpoints from one authored task family; not an independent holdout."
 }

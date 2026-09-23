@@ -1,0 +1,7 @@
+# freeze.json binds data files by SHA-256 of their raw bytes, so those bytes must
+# not depend on the platform that checked them out. Without this, a suite frozen
+# on Windows (CRLF working copy) fails its own integrity check on Linux (LF).
+* text=auto eol=lf
+*.safetensors binary
+*.bin binary
+*.tar.gz binary

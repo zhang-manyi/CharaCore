@@ -23,8 +23,13 @@ submit_action: {"action":"promise","promise":"keep_sealed"} 承诺保持封条�
 
 
 def dump(path, value):
-    """Exclusive creation: never replace a prior request/result/failure."""
-    with Path(path).open("x", encoding="utf-8") as stream:
+    """Exclusive creation: never replace a prior request/result/failure.
+
+    newline="" keeps bytes identical across platforms. freeze.json binds data
+    files by SHA-256 of their raw bytes, so a suite frozen where dump() emits
+    CRLF would fail its own integrity check wherever it is read back as LF.
+    """
+    with Path(path).open("x", encoding="utf-8", newline="") as stream:
         json.dump(value, stream, ensure_ascii=False, indent=2)
 
 
