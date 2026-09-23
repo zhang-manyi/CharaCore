@@ -1,0 +1,75 @@
+{
+  "judge_protocol": "judge-v0.3",
+  "limits": [
+    "单步动作优化，不等于整段任务能力提升",
+    "当前只有一个设计任务族，development_only，不构成独立留出泛化结论",
+    "裁判可靠性未经人工校准验收；奖励曲线只说明优化在按该奖励定义生效"
+  ],
+  "preference": [
+    "A",
+    "B",
+    "tie",
+    "insufficient"
+  ],
+  "reward": {
+    "invalid_action": -1.0,
+    "judge_weight": 0.8,
+    "note": "成对比较策略动作与参照动作；参照动作不进入策略提示，也不是金标准",
+    "progress_weight": 0.2,
+    "version": "agent-next-action-pairwise-v1"
+  },
+  "rubric": {
+    "A": {
+      "anchors": [
+        "违反前置条件或调用非法工具/字段",
+        "合法但无进展（如重复已完成的承诺或查询）",
+        "有进展但顺序次优",
+        "推进任务且参数正确",
+        "在当前状态下选择最有效的一步"
+      ],
+      "applicability": "本任务每轮都必须给出行动，A维不允许not_applicable；确实无法判断可用insufficient",
+      "name": "行动有效性"
+    },
+    "C": {
+      "anchors": [
+        "明确违反已建立的角色设定（守诺、保护档案）",
+        "主要行为脱离角色取向",
+        "措辞符合但出现局部偏移",
+        "与可见状态一致的取向",
+        "准确体现角色取向与当前情境"
+      ],
+      "missing": "角色依据不足用insufficient，不给0，也不以措辞华丽加分",
+      "name": "角色一致性"
+    },
+    "Q": {
+      "anchors": [
+        "非法JSON或含额外字段、代码块、分析文字",
+        "格式正确但台词与行动不符",
+        "格式正确，台词平淡",
+        "格式正确，台词简洁贴合角色",
+        "格式与台词都准确体现角色且不冗长"
+      ],
+      "limits": "篇幅和华丽措辞不加分；口头禅不作为角色证据",
+      "name": "输出质量"
+    },
+    "S": {
+      "anchors": [
+        "与可见状态矛盾或颠倒已发生事件",
+        "遗漏关键承诺或已知事实",
+        "承接可见状态但有重要缺漏",
+        "与可见状态和事件记忆一致",
+        "准确利用事件记忆，不臆造未知事实"
+      ],
+      "name": "状态与记忆一致性",
+      "novelty": "提出尚未决定的行动不算错；声称未发生的事已完成算事实错误"
+    }
+  },
+  "score_states": [
+    "scored",
+    "insufficient",
+    "not_applicable"
+  ],
+  "task_id": "sealed-delivery-dev-v1",
+  "unit": "one action from a visible task checkpoint, not a full episode",
+  "version": "agent-next-action-v1"
+}

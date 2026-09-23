@@ -1,0 +1,966 @@
+[
+  {
+    "id": "train_001",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+  },
+  {
+    "id": "train_002",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+  },
+  {
+    "id": "train_003",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+  },
+  {
+    "id": "train_004",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_005",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_006",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_007",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+  },
+  {
+    "id": "train_008",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_009",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_010",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_011",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_012",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_013",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_014",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_015",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_016",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_017",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_018",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_019",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_020",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_021",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+  },
+  {
+    "id": "train_022",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+  },
+  {
+    "id": "train_023",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_024",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_025",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_026",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_027",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_028",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_029",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_030",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_031",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_032",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_033",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_034",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_035",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_036",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_037",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_038",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_039",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_040",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_041",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_042",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_043",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_044",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_045",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_046",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  },
+  {
+    "id": "train_047",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_048",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_049",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_050",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_051",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_052",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_053",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_054",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_055",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_056",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "train_057",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_058",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_059",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_060",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_061",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_062",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_063",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_064",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_065",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_066",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_067",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_068",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_069",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_070",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "train_071",
+    "split": "train",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  }
+]

@@ -3,16 +3,18 @@ from characore.grpo_rewards import UnusableReward, validate_groups
 
 
 def check_payloads(payloads, group_size):
+    """Returns the count of zero-advantage groups across all ranks."""
     if any(p["error"] for p in payloads):
         raise UnusableReward("at least one rank failed reward calculation; all ranks abort before update")
     values = [v for p in payloads for v in p["values"]]
     keys = [v for p in payloads for v in p["keys"]]
     if len(keys) != len(values):
         raise UnusableReward("reward group key alignment mismatch")
-    validate_groups(values, group_size)
+    _, degenerate = validate_groups(values, group_size)
     for start in range(0, len(keys), group_size):
         if len(set(keys[start:start + group_size])) != 1:
             raise UnusableReward("distributed GRPO group contains different prompts/anchors")
+    return degenerate
 
 
 class DistributedReward:
@@ -21,6 +23,7 @@ class DistributedReward:
     def __init__(self, callback, group_size):
         self.callback = callback
         self.group_size = group_size
+        self.zero_advantage_groups = 0
 
     def __call__(self, **kwargs):
         import torch.distributed as dist
@@ -41,5 +44,5 @@ class DistributedReward:
             dist.all_gather_object(gathered, payload)
         else:
             gathered = [payload]
-        check_payloads(gathered, self.group_size)
+        self.zero_advantage_groups += check_payloads(gathered, self.group_size)
         return payload["values"]

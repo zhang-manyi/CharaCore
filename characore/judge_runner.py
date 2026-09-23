@@ -13,11 +13,14 @@ def identity(value):
 
 
 def judge_identity(metadata):
-    if metadata.get("kind") == "remote_judge_api":
+    if metadata.get("kind") in ("remote_judge_api", "stub_judge"):
         return identity(metadata)
     # Paths and purpose labels are not model identity. Weights, decoding and code are.
     keys = ("model_files_sha256", "packages", "source_sha256", "device", "dtype",
             "quantized_4bit", "seed", "do_sample", "max_new_tokens", "enable_thinking")
+    missing = [k for k in keys if k not in metadata]
+    if missing:
+        raise ValueError(f"judge metadata missing identity fields: {missing}")
     return identity({k: metadata[k] for k in keys})
 
 

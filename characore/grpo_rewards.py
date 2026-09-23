@@ -20,8 +20,10 @@ class UnusableReward(ValueError):
 
 
 def restore(prefix):
-    env = DeliveryTask(50)
-    if not isinstance(prefix, list) or len(prefix) >= 49:
+    # Same horizon as a real episode: a training checkpoint must produce the same
+    # visible observation (including steps_remaining) that evaluation would.
+    env = DeliveryTask()
+    if not isinstance(prefix, list) or len(prefix) >= env.max_steps:
         raise ValueError("prefix must leave room for an action")
     for raw in prefix:
         if not isinstance(raw, str):
@@ -57,15 +59,19 @@ def pair_reward(ab, ba):
 
 
 def validate_groups(values, group_size):
+    """Reject unusable rewards. Equal-but-valid groups are reported, not rejected."""
     if group_size < 2 or not values or len(values) % group_size:
         raise UnusableReward("incomplete GRPO sampling group")
+    degenerate = 0
     for start in range(0, len(values), group_size):
         group = values[start:start + group_size]
         if any(type(x) not in (int, float) or not math.isfinite(x) for x in group):
             raise UnusableReward("missing or nonfinite reward; abort before TRL nansum")
-        if max(group) - min(group) < 1e-8:
-            raise UnusableReward("all-equal group has no learning signal; no synthetic tie breaking")
-    return values
+        # An all-equal group yields zero advantage for every sample: a no-op update,
+        # not corrupt data. Aborting the batch would stall on easy checkpoints, so
+        # count it instead of inventing a difference.
+        degenerate += max(group) - min(group) < 1e-8
+    return values, degenerate
 
 
 class ActionReward:
@@ -88,13 +94,16 @@ class ActionReward:
         try:
             if not len(completions) == len(prefix) == len(anchor):
                 raise ValueError("reward batch alignment mismatch")
-            if not self.distributed and len(completions) % self.group_size:
-                raise UnusableReward("incomplete GRPO sampling group")
-            for start in range(0, 0 if self.distributed else len(completions), self.group_size):
-                keys = {identity(dict(prefix=prefix[i], anchor=anchor[i]))
-                        for i in range(start, start + self.group_size)}
-                if len(keys) != 1:
-                    raise UnusableReward("a GRPO group must share one visible checkpoint and anchor")
+            if not self.distributed:
+                # Under DDP a rank holds a partial group; DistributedReward checks
+                # group composition after gathering every rank's keys.
+                if len(completions) % self.group_size:
+                    raise UnusableReward("incomplete GRPO sampling group")
+                for start in range(0, len(completions), self.group_size):
+                    keys = {identity(dict(prefix=prefix[i], anchor=anchor[i]))
+                            for i in range(start, start + self.group_size)}
+                    if len(keys) != 1:
+                        raise UnusableReward("a GRPO group must share one visible checkpoint and anchor")
             for i, (raw, history, reference) in enumerate(zip(completions, prefix, anchor)):
                 # The trainer uses pre-rendered string prompts, so completions are strings.
                 visible, row, progress = transition(history, raw)
@@ -108,6 +117,13 @@ class ActionReward:
                 _, anchor_row, _ = transition(history, reference)
                 candidates = {"A": json.dumps(dict(output=raw, execution=row["tool_result"]), ensure_ascii=False),
                               "B": json.dumps(dict(output=reference, execution=anchor_row["tool_result"]), ensure_ascii=False)}
+                if candidates["A"] == candidates["B"]:
+                    # The policy reproduced the reference action. Identical candidates
+                    # make any winner an order artifact, so score it a tie without
+                    # spending a judge call.
+                    values.append(REWARD_SPEC["judge_weight"] * REWARD_SPEC["pairwise_values"]["tie"]
+                                  + REWARD_SPEC["progress_weight"] * progress)
+                    continue
                 context = dict(id=TASK_ID, character="岚（原创设计角色，守诺、保护档案）", action_required=True,
                                visible_turns=[dict(source_line=1, speaker="可见任务输入", text=visible[1]["content"])])
                 results = []
@@ -115,9 +131,14 @@ class ActionReward:
                     request = make_request(context, candidates, self.rubric, reverse=reverse)
                     request["id"] = f"sample_{i:03d}_{'BA' if reverse else 'AB'}"
                     results.append(call_judge(request, self.judge, path / request["id"])["final"])
-                values.append(.8 * pair_reward(*results) + .2 * progress)
-            dump(path / "rewards.json", dict(values=values, spec=REWARD_SPEC))
-            return values if self.distributed else validate_groups(values, self.group_size)
+                values.append(REWARD_SPEC["judge_weight"] * pair_reward(*results)
+                              + REWARD_SPEC["progress_weight"] * progress)
+            degenerate = None
+            if not self.distributed:
+                _, degenerate = validate_groups(values, self.group_size)
+            dump(path / "rewards.json", dict(values=values, spec=REWARD_SPEC,
+                                             zero_advantage_groups=degenerate))
+            return values
         except Exception as exc:
             dump(path / "failure.json", dict(type=type(exc).__name__, message=str(exc), partial_rewards=values))
             raise

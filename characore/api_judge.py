@@ -102,6 +102,7 @@ class APIJudge:
         return text.replace(self._key, "[REDACTED]")
 
     def check_input(self, messages, input_limit=None):
+        """Byte budget. The caller's token budget does not apply to a remote judge."""
         size = len(json.dumps(messages, ensure_ascii=False).encode("utf-8"))
         if size > self.input_limit:
             raise ValueError("API input byte budget exceeded; refusing truncation")

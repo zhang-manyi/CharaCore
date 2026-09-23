@@ -1,4 +1,4 @@
-"""Offline Transformers inference; reuses the existing local DPO model loader only."""
+"""Offline Transformers inference; reuses the shared local model loader only."""
 import importlib.metadata
 import os
 from pathlib import Path
@@ -19,7 +19,7 @@ class LocalPolicy:
             raise ValueError("max_new_tokens must be 1..1024")
         import torch
         from transformers import set_seed
-        from scripts.train_dpo import load_model
+        from characore.model_loader import load_model
 
         torch.set_num_threads(4)
         set_seed(seed)
@@ -34,7 +34,7 @@ class LocalPolicy:
                              packages={p: importlib.metadata.version(p) for p in ("torch", "transformers", "accelerate")},
                              model_files_sha256={p.name: digest(p) for p in sorted(base.iterdir()) if p.is_file()},
                              source_sha256={"local_policy.py": digest(__file__),
-                                            "train_dpo.py": digest(Path(__file__).resolve().parents[1] / "scripts/train_dpo.py")},
+                                            "model_loader.py": digest(Path(__file__).resolve().parent / "model_loader.py")},
                              device_name=torch.cuda.get_device_name(0) if device == "cuda" else "cpu")
 
     def __call__(self, messages):

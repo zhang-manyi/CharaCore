@@ -1,0 +1,52 @@
+[
+  {
+    "id": "eval_001",
+    "split": "eval",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "eval_002",
+    "split": "eval",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+  },
+  {
+    "id": "eval_003",
+    "split": "eval",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"move\", \"route\": \"north\"}}"
+  },
+  {
+    "id": "eval_004",
+    "split": "eval",
+    "exposure": "development",
+    "family": "sealed-delivery-dev-v1",
+    "source": "sealed-delivery-dev-v1",
+    "prefix": [
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"query_status\", \"arguments\": {}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"dispatch\"}}",
+      "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"submit_action\", \"arguments\": {\"action\": \"promise\", \"promise\": \"keep_sealed\"}}"
+    ],
+    "anchor": "{\"speech\": \"按已知事实执行并保留承诺。\", \"tool\": \"inspect_clue\", \"arguments\": {\"clue_id\": \"route\"}}"
+  }
+]

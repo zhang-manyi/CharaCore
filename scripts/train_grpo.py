@@ -17,21 +17,17 @@ os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from characore.agent import dump, messages
-from characore.grpo_data import load_training_suite, verify_calibration
-from characore.grpo_rewards import ActionReward, REWARD_SPEC, restore, transition, validate_groups
-from characore.judge_runner import identity, judge_identity
-from characore.protocol import digest
+from characore.grpo_data import load_training_suite
+from characore.grpo_rewards import ActionReward, REWARD_SPEC, restore, transition
+from characore.protocol import digest, read_json
 from characore.precision import select_precision
 
 
 def preflight(args):
+    """Validate the frozen suite. Judge reliability is reported, never assumed."""
     if args.tiny:
         return None
-    rows, evaluation, approval = load_training_suite(args.suite)
-    report = verify_calibration(args.packet, args.judge_results, args.human)
-    if approval.get("calibration_report_sha256") != identity(report):
-        raise ValueError("reward approval not bound to actual calibration results")
-    return rows, evaluation, report
+    return load_training_suite(args.suite)
 
 
 def run(args, checked):
@@ -40,24 +36,25 @@ def run(args, checked):
     from peft import LoraConfig, PeftModel
     from transformers import set_seed
     from trl import GRPOConfig, GRPOTrainer
-    from scripts.train_dpo import load_model
+    from characore.model_loader import load_model
     from characore.distributed_rewards import DistributedReward
 
     if importlib.metadata.version("trl") != "0.26.2":
         raise ValueError("this adapter is verified against TRL 0.26.2")
     torch.set_num_threads(4)
     set_seed(args.seed)
-    group_size = 4 if args.tiny else 2
+    group_size = args.group_size
     judge_policy = None
     if not args.tiny:
         if args.judge_backend == "api":
             from characore.api_judge import APIJudge
             judge_policy = APIJudge(args.env_file, allow_calls=args.allow_api)
+        elif args.judge_backend == "stub":
+            from characore.stub_judge import StubJudge
+            judge_policy = StubJudge()
         else:
             from characore.local_policy import LocalPolicy
             judge_policy = LocalPolicy(args.judge_base, device="cpu", max_new_tokens=1024)
-        if judge_identity(judge_policy.metadata) != checked[2]["judge_identity"]:
-            raise ValueError("judge model/decoding/device differs from calibrated configuration")
     load_device = f"cuda:{args.local_rank}" if args.device == "cuda" else "cpu"
     if args.device == "cuda":
         torch.cuda.set_device(args.local_rank)
@@ -88,7 +85,7 @@ def run(args, checked):
             if len(tokenizer(prompt, add_special_tokens=False)["input_ids"]) + 192 > model.config.max_position_embeddings:
                 raise ValueError("prompt too long; refusing silent truncation")
             rows.append(dict(prompt=prompt, prefix=row["prefix"], anchor=row["anchor"]))
-        rubric = json.loads((ROOT / "experiments/genshin_stage_b_v03/evaluation_plan.json").read_text(encoding="utf8"))["rubric"]
+        rubric = read_json(ROOT / "experiments/agent_v1/evaluation_plan.json")["rubric"]
         reward = ActionReward(judge_policy, args.output / "reward_calls", rubric, group_size, distributed=True)
         targets, completion_length = ["q_proj", "v_proj"], 192
     reward = DistributedReward(reward, group_size)
@@ -161,7 +158,8 @@ def run(args, checked):
          tiny=args.tiny, claim="software mechanics only" if args.tiny else "development next-action GRPO, not full-episode GRPO or held-out improvement",
          rank=args.rank, world_size=args.world_size, device=load_device, precision=precision,
          suite_sha256=None if args.tiny else digest(args.suite / "freeze.json"),
-         calibration_report=None if args.tiny else checked[2],
+         judge_backend=None if args.tiny else args.judge_backend,
+         judge_reliability="uncalibrated: no human agreement measured for this task",
          judge_metadata=None if args.tiny else judge_policy.metadata,
          base_files_sha256={p.name: digest(p) for p in sorted((args.output / "tiny_base" if args.tiny else Path(args.base)).iterdir()) if p.is_file()},
          seed=args.seed, group_size=group_size, steps=args.steps, config=cfg.to_dict(), reward_spec=REWARD_SPEC if not args.tiny else "synthetic token-ID mean",
@@ -212,13 +210,11 @@ def main():
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--base")
     parser.add_argument("--judge-base")
-    parser.add_argument("--judge-backend", choices=("local", "api"), default="local")
+    parser.add_argument("--judge-backend", choices=("local", "api", "stub"), default="api")
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--allow-api", action="store_true")
     parser.add_argument("--suite", type=Path)
-    parser.add_argument("--packet", type=Path)
-    parser.add_argument("--judge-results", type=Path)
-    parser.add_argument("--human", type=Path)
+    parser.add_argument("--group-size", type=int, default=4)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--quantize", action="store_true")
     parser.add_argument("--precision", choices=("auto", "fp16", "bf16", "fp32"), default="auto")
@@ -227,10 +223,12 @@ def main():
     args = parser.parse_args()
     if args.steps < 1:
         parser.error("steps must be positive")
-    if args.tiny and (args.device != "cpu" or args.quantize or args.allow_api or args.judge_backend != "local" or any((args.base,args.judge_base,args.suite,args.packet,args.human,args.judge_results))):
+    if args.group_size < 2:
+        parser.error("GRPO needs at least two samples per group")
+    if args.tiny and (args.device != "cpu" or args.quantize or args.allow_api or any((args.base, args.judge_base, args.suite))):
         parser.error("tiny mode is CPU-only random model; cannot mix real inputs")
-    if not args.tiny and not all((args.base,args.suite,args.packet,args.human,args.judge_results)):
-        parser.error("real mode requires base, suite, packet, judge-results and human")
+    if not args.tiny and not all((args.base, args.suite)):
+        parser.error("real mode requires --base and --suite")
     if not args.tiny and args.judge_backend == "local" and not args.judge_base:
         parser.error("local judge requires --judge-base")
     if not args.tiny and args.judge_backend == "api" and not args.allow_api and not args.preflight_only:

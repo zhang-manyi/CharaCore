@@ -150,9 +150,10 @@ class APIClusterTests(unittest.TestCase):
         payloads[1]["error"]="TimeoutError"
         with self.assertRaisesRegex(UnusableReward,"all ranks"):
             check_payloads(payloads,2)
+        # An all-equal group means zero advantage for every sample: a no-op update
+        # that is counted and reported, not a corrupt batch to abort on.
         payloads[1]=dict(values=[0],keys=["same"],error=None)
-        with self.assertRaisesRegex(UnusableReward,"all-equal"):
-            check_payloads(payloads,2)
+        self.assertEqual(check_payloads(payloads,2),1)
 
 
 if __name__ == "__main__":

@@ -1,13 +1,20 @@
 .venv/
 venv/
+env/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
-runs/
+.idea/
+.vscode/
+*.egg-info/
 model_cache/
 data/raw/
 .env
 *.safetensors
 *.bin
 *.tar.gz
+
+# runs/ holds throwaway run output. Accepted, frozen inputs that the cluster needs
+# (training suites, calibration packets, human results) belong in experiments/.
+runs/

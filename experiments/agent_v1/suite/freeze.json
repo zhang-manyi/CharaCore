@@ -1,0 +1,11 @@
+{
+  "task_id": "sealed-delivery-dev-v1",
+  "evaluation_scope": "development_only",
+  "reward_spec_sha256": "4710476d4269796818071155127541d7c4601cb7db844d3e75a115238659e5fa",
+  "created_by": "build_agent_suite",
+  "files": {
+    "train.json": "3d59521faeb968b6aeff8b617e761b0f104a8578ad14b25be773d42a582d89ae",
+    "eval.json": "5705bc726ab3ece7afc660cbae492e3adc4d49d1bd44a457d210b416be5edf39"
+  },
+  "claim": "Development checkpoints from one authored task family; not an independent holdout."
+}

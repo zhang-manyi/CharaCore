@@ -9,6 +9,7 @@ from characore.agent import dump
 from characore.api_judge import APIJudge
 from characore.judge import make_request
 from characore.judge_runner import call_judge
+from characore.protocol import read_json
 
 
 def main():
@@ -26,7 +27,7 @@ def main():
         return 0
     args.output.mkdir(parents=True, exist_ok=False)
     dump(args.output / "model.json", dict(metadata=policy.metadata, budget=policy.budget))
-    rubric = json.loads((Path(__file__).resolve().parents[1] / "experiments/genshin_stage_b_v03/evaluation_plan.json").read_text(encoding="utf-8"))["rubric"]
+    rubric = read_json(Path(__file__).resolve().parents[1] / "experiments/agent_v1/evaluation_plan.json")["rubric"]
     context = dict(id="api-connectivity-only", character="设计角色：档案员", action_required=True,
                    visible_turns=[dict(source_line=1, speaker="委托人", text="请先检查封条，保持档案密封。")])
     req = make_request(context, {"A": "我先检查封条，保持档案密封。", "B": "我直接拆开档案。"}, rubric)
