@@ -10,7 +10,7 @@ from characore.agent import TASK_ID, command, dump
 from characore.grpo_data import load_training_suite
 from characore.grpo_rewards import (ActionReward, REWARD_SPEC, UnusableReward, pair_reward,
                                     restore, transition, validate_groups)
-from characore.judge import DIMS, PROTOCOL
+from characore.judge import DIMS, PROTOCOL, parse_response
 from characore.judge_runner import identity
 from characore.protocol import digest, read_json
 from characore.stub_judge import StubJudge
@@ -35,6 +35,23 @@ class RewardTests(unittest.TestCase):
                      (dict(call_status="parse_error", judgement=None), judged()), (missing_dim, judged())]:
             with self.assertRaises(UnusableReward):
                 pair_reward(a, b)
+
+    def test_tie_still_requires_reason_and_citation_key(self):
+        """A real judge omitted both keys on tie, reading 'cannot be empty' as 'may be absent'.
+
+        Dropping them loses the pairwise rationale, so the parse must fail rather
+        than default the keys; SYSTEM now states tie sends [] instead of omitting.
+        """
+        allowed = ["E1", "candidate:A", "candidate:B"]
+        for dropped in ("reason", "preference_evidence_ids"):
+            body = json.loads(judged("tie")["raw"])
+            del body[dropped]
+            result = parse_response(json.dumps(body), allowed, True)
+            self.assertEqual(result["call_status"], "parse_error")
+            self.assertEqual(result["error"], "Unexpected judge fields")
+        empty = json.loads(judged("tie")["raw"])
+        empty["preference_evidence_ids"] = []
+        self.assertEqual(parse_response(json.dumps(empty), allowed, True)["call_status"], "ok")
 
     def test_no_silent_zero_and_equal_groups_reported_not_rejected(self):
         for values in ([None, 1], [float("nan"), 1], [float("inf"), 1], [True, 1], [1]):

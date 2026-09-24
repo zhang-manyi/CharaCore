@@ -22,6 +22,9 @@ Q可引用候选本身；对历史事实、角色取向的判断须有可见材�
 若只有互相冲突且都无法核验的事实断言，关键差异无法确定，winner 应为 insufficient。
 只要某个维度缺证据不必令整对 insufficient；有明确可核验差异仍可排序。
 JSON增加 preference_evidence_ids 数组，列出支持成对理由的证据编号；A/B胜出时不能为空。
+顶层五个键 protocol、winner、scores、reason、preference_evidence_ids 必须全部出现，
+不得增删。winner 为 tie 或 insufficient 时，reason 仍须说明为何无法排序，
+preference_evidence_ids 用空数组 []，不要省略该键。
 形式正确的引用仍需人工核查其是否实际支持理由。"""
 
 
