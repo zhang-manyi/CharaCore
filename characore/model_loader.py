@@ -19,6 +19,7 @@ def load_model(base, tiny=False, quantize=False, device="cpu", precision="auto")
     cuda = torch.device(device).type == "cuda"
     dtype = {"fp16": torch.float16, "bf16": torch.bfloat16,
              "fp32": torch.float32}[select_precision(device, precision)]
+    dispatched = False
     if tiny:
         from tokenizers import Tokenizer
         from tokenizers.models import WordLevel
@@ -34,6 +35,15 @@ def load_model(base, tiny=False, quantize=False, device="cpu", precision="auto")
     else:
         tokenizer = AutoTokenizer.from_pretrained(base, local_files_only=True)
         options = {"local_files_only": True, "torch_dtype": dtype, "attn_implementation": "sdpa"}
+        if cuda and not quantize:
+            # Stream each shard straight onto this rank's GPU. Loading to CPU first
+            # holds a full copy per process, so two ranks need 2x the weights in host
+            # RAM and a 32GB memory cgroup kills them mid-load (SIGKILL, not OOM on
+            # the card). device_map pins every module to one device: no offload, no
+            # sharding across ranks, each rank still owns the whole base model.
+            options["device_map"] = {"": torch.device(device)}
+            options["low_cpu_mem_usage"] = True
+            dispatched = True
         if quantize:
             if not cuda:
                 raise ValueError("4-bit experiment requires CUDA")
@@ -42,7 +52,9 @@ def load_model(base, tiny=False, quantize=False, device="cpu", precision="auto")
                     bnb_4bit_compute_dtype=dtype)
             options["device_map"] = {"": torch.device(device).index or 0}
         model = AutoModelForCausalLM.from_pretrained(base, **options)
-    if not quantize:
+    if not quantize and not dispatched:
+        # Already placed when device_map dispatched the shards; .to() on a
+        # dispatched model is both redundant and rejected by accelerate.
         model.to(device)
     tokenizer.pad_token = tokenizer.pad_token or tokenizer.eos_token
     tokenizer.padding_side = "left"
