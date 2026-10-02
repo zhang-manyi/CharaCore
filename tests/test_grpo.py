@@ -168,5 +168,37 @@ class TrainingGateTests(unittest.TestCase):
         self.assertGreater(len(depths), 1, "eval split must cover more than one depth")
 
 
+class SamplingSurveyTests(unittest.TestCase):
+    """Model-free: the survey statistics only, on synthetic completions."""
+
+    def test_collapsed_group_and_speech_only_variants_are_separated(self):
+        from scripts.survey_sampling import overall, summarize
+        row = dict(id='synthetic', prefix=[], anchor=command('inspect_clue', clue_id='dispatch'))
+        reworded = json.dumps(dict(speech='先读派单。', tool='inspect_clue',
+                                   arguments=dict(clue_id='dispatch')), ensure_ascii=False)
+        collapsed = summarize(row, [row['anchor']] * 4)
+        self.assertEqual((collapsed['distinct_outputs'], collapsed['distinct_actions']), (1, 1))
+        self.assertEqual(collapsed['anchor_action'], 4)
+        self.assertFalse(collapsed['environment_contrast'])
+        speech_only = summarize(row, [row['anchor'], reworded])
+        self.assertEqual((speech_only['distinct_outputs'], speech_only['distinct_actions']), (2, 1))
+        self.assertFalse(speech_only['environment_contrast'],
+                         "speech-only variants leave the reward to the judge alone")
+        mixed = summarize(row, [row['anchor'], command('query_status'), 'not json'])
+        self.assertEqual(mixed['distinct_actions'], 3)
+        self.assertEqual(mixed['invalid'], 1)
+        self.assertTrue(mixed['environment_contrast'])
+        totals = overall([collapsed, speech_only, mixed])
+        self.assertEqual((totals['one_output'], totals['one_action'], totals['environment_contrast']), (1, 2, 1))
+        self.assertEqual(totals['all_anchor_action'], 2)
+
+    def test_reformatted_anchor_is_counted_as_byte_mismatch(self):
+        from scripts.survey_sampling import summarize
+        row = dict(id='synthetic', prefix=[], anchor=command('inspect_clue', clue_id='dispatch'))
+        compact = json.dumps(json.loads(row['anchor']), ensure_ascii=False, separators=(',', ':'))
+        record = summarize(row, [compact, row['anchor']])
+        self.assertEqual(record['anchor_equivalent_not_bytes'], 1)
+
+
 if __name__ == '__main__':
     unittest.main()
