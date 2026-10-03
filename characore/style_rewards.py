@@ -25,7 +25,7 @@ from characore.judge_runner import call_judge, identity
 from characore.persona import CHARACTERS, OTHER
 from characore.protocol import dump
 
-LENGTH = (4, 80)
+LENGTH = (1, 80)  # Rei's in-character "不。" is one character; per-persona brevity is the soft length term
 # Any one tone marker more than this many times, or this many marker hits in total, is stuffing.
 MARKER_CAP, MARKER_TOTAL_CAP = 2, 4
 OOC = ("作为AI", "作为一个AI", "作为人工智能", "人工智能", "语言模型", "AI助手", "我是AI",
@@ -33,14 +33,21 @@ OOC = ("作为AI", "作为一个AI", "作为人工智能", "人工智能", "语�
 WEIGHTS = dict(pairwise=0.7, style=0.3, off_topic=0.5)
 REWARD_SPEC = dict(name="style-pairwise-v1", judge_protocol=PROTOCOL, length=LENGTH,
                    marker_cap=MARKER_CAP, marker_total_cap=MARKER_TOTAL_CAP, ooc=OOC,
+                   ellipsis="'...' and '…' runs count as '……' for markers only; reply text is unchanged",
                    weights=WEIGHTS, hard_penalty=-1.0,
                    rejection="any unusable sample rejects its whole group; never zero-filled")
 EMPTY_THINK = re.compile(r"^\s*<think>\s*</think>\s*")
+ELLIPSIS = re.compile(r"\.{3,}|…+")
 
 
 def clean_reply(raw):
     """Strip the empty think block some templates emit and surrounding whitespace only."""
     return EMPTY_THINK.sub("", raw).strip()
+
+
+def marker_text(reply):
+    """The base model writes '...' about as often as '……'; both are the same tone marker."""
+    return ELLIPSIS.sub("……", reply)
 
 
 def hard_violation(reply, character):
@@ -57,7 +64,7 @@ def hard_violation(reply, character):
     # A speaker prefix for anyone ("明日香：…") is a script line, not a reply in character.
     if re.match(r"^[^，。！？\s]{1,6}[：:]", reply) and any(reply.startswith(a) for a in person["aliases"] + other["aliases"]):
         return "speaker_prefix"
-    counts = [reply.count(m) for m in person["markers"]]
+    counts = [marker_text(reply).count(m) for m in person["markers"]]
     if max(counts) > MARKER_CAP or sum(counts) > MARKER_TOTAL_CAP:
         return "catchphrase_cap"
     return None
@@ -65,10 +72,10 @@ def hard_violation(reply, character):
 
 def style_score(reply, character):
     """Rule style score in [0, 1]. Presence counts once per marker, so repetition earns nothing."""
-    person = CHARACTERS[character]
-    present = sum(m in reply for m in person["markers"])
+    person, text = CHARACTERS[character], marker_text(reply)
+    present = sum(m in text for m in person["markers"])
     marker = min(present, 2) / 2
-    anti = 0.0 if any(m in reply for m in person["anti_markers"]) else 1.0
+    anti = 0.0 if any(m in text for m in person["anti_markers"]) else 1.0
     n, spec = len(reply), person["length"]
     if n < spec["soft_min"]:
         length = 0.5
@@ -91,7 +98,7 @@ def rule_metrics(replies, characters):
                 hard_reasons=reasons,
                 style_score_mean=sum(style_score(r, c) for r, c in zip(replies, characters)) / n if n else None,
                 length_mean=sum(len(r) for r in replies) / n if n else None,
-                marker_rate=sum(any(m in r for m in CHARACTERS[c]["markers"]) for r, c in zip(replies, characters)) / n if n else None)
+                marker_rate=sum(any(m in marker_text(r) for m in CHARACTERS[c]["markers"]) for r, c in zip(replies, characters)) / n if n else None)
 
 
 def _original(final, mapping):

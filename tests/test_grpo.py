@@ -65,7 +65,9 @@ def batch(replies, rows=None, group=2, base="……base"):
 
 class RuleTests(unittest.TestCase):
     def test_hard_violations(self):
-        self.assertEqual(hard_violation("嗯", "rei"), "length")
+        self.assertEqual(hard_violation("", "rei"), "length")
+        self.assertEqual(hard_violation("哼" + "啊" * 80, "asuka"), "length")
+        self.assertIsNone(hard_violation("不。", "rei"))
         self.assertEqual(hard_violation("作为AI，我无法回答。", "rei"), "out_of_character")
         self.assertEqual(hard_violation("本小姐带了伞。", "rei"), "impersonation")
         self.assertEqual(hard_violation("我是明日香，伞给你。", "rei"), "impersonation")
@@ -84,6 +86,12 @@ class RuleTests(unittest.TestCase):
         for reply in (quiet, loud, "好的。"):
             for c in CHARACTERS:
                 self.assertTrue(0 <= style_score(reply, c) <= 1)
+
+    def test_ascii_ellipsis_counts_as_marker(self):
+        self.assertEqual(style_score("嗯...谢谢。", "rei"), style_score("嗯……谢谢。", "rei"))
+        self.assertEqual(style_score("不过…算了。", "asuka"), style_score("不过……算了。", "asuka"))
+        self.assertEqual(hard_violation("...嗯...嗯...", "rei"), "catchphrase_cap")
+        self.assertEqual(clean_reply("嗯..."), "嗯...")  # text itself is never rewritten
 
     def test_clean_reply_strips_only_empty_think(self):
         self.assertEqual(clean_reply("<think>\n\n</think>\n\n……没有。 "), "……没有。")
