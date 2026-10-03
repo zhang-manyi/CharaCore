@@ -1,0 +1,1442 @@
+[
+  {
+    "id": "T01-L1-rei",
+    "template": "T01",
+    "character": "rei",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "你带伞了吗？"
+  },
+  {
+    "id": "T01-L1-asuka",
+    "template": "T01",
+    "character": "asuka",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "你带伞了吗？"
+  },
+  {
+    "id": "T01-L2-rei",
+    "template": "T01",
+    "character": "rei",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "要不要一起走到车站？"
+  },
+  {
+    "id": "T01-L2-asuka",
+    "template": "T01",
+    "character": "asuka",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "要不要一起走到车站？"
+  },
+  {
+    "id": "T01-L3-rei",
+    "template": "T01",
+    "character": "rei",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "今天的小测你考得怎么样？"
+  },
+  {
+    "id": "T01-L3-asuka",
+    "template": "T01",
+    "character": "asuka",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "今天的小测你考得怎么样？"
+  },
+  {
+    "id": "T01-L4-rei",
+    "template": "T01",
+    "character": "rei",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "你平时放学后都做什么？"
+  },
+  {
+    "id": "T01-L4-asuka",
+    "template": "T01",
+    "character": "asuka",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "你平时放学后都做什么？"
+  },
+  {
+    "id": "T01-L5-rei",
+    "template": "T01",
+    "character": "rei",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "这雨好像一时停不了。"
+  },
+  {
+    "id": "T01-L5-asuka",
+    "template": "T01",
+    "character": "asuka",
+    "situation": "放学后的教室里只剩你们两个人，窗外在下雨。",
+    "speaker": "同班同学",
+    "line": "这雨好像一时停不了。"
+  },
+  {
+    "id": "T02-L1-rei",
+    "template": "T02",
+    "character": "rei",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "这次的数值比上次低了一些。"
+  },
+  {
+    "id": "T02-L1-asuka",
+    "template": "T02",
+    "character": "asuka",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "这次的数值比上次低了一些。"
+  },
+  {
+    "id": "T02-L2-rei",
+    "template": "T02",
+    "character": "rei",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "身体有没有哪里不舒服？"
+  },
+  {
+    "id": "T02-L2-asuka",
+    "template": "T02",
+    "character": "asuka",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "身体有没有哪里不舒服？"
+  },
+  {
+    "id": "T02-L3-rei",
+    "template": "T02",
+    "character": "rei",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "下周要加一轮测试。"
+  },
+  {
+    "id": "T02-L3-asuka",
+    "template": "T02",
+    "character": "asuka",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "下周要加一轮测试。"
+  },
+  {
+    "id": "T02-L4-rei",
+    "template": "T02",
+    "character": "rei",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "你觉得刚才哪里出了问题？"
+  },
+  {
+    "id": "T02-L4-asuka",
+    "template": "T02",
+    "character": "asuka",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "你觉得刚才哪里出了问题？"
+  },
+  {
+    "id": "T02-L5-rei",
+    "template": "T02",
+    "character": "rei",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "先去休息吧，记录我来整理。"
+  },
+  {
+    "id": "T02-L5-asuka",
+    "template": "T02",
+    "character": "asuka",
+    "situation": "同步测试刚结束，你从测试舱里出来。",
+    "speaker": "技术主管",
+    "line": "先去休息吧，记录我来整理。"
+  },
+  {
+    "id": "T03-L1-rei",
+    "template": "T03",
+    "character": "rei",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这是我多做的一份，你要吗？"
+  },
+  {
+    "id": "T03-L1-asuka",
+    "template": "T03",
+    "character": "asuka",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这是我多做的一份，你要吗？"
+  },
+  {
+    "id": "T03-L2-rei",
+    "template": "T03",
+    "character": "rei",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "里面没有放肉。"
+  },
+  {
+    "id": "T03-L2-asuka",
+    "template": "T03",
+    "character": "asuka",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "里面没有放肉。"
+  },
+  {
+    "id": "T03-L3-rei",
+    "template": "T03",
+    "character": "rei",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "合不合你的口味？"
+  },
+  {
+    "id": "T03-L3-asuka",
+    "template": "T03",
+    "character": "asuka",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "合不合你的口味？"
+  },
+  {
+    "id": "T03-L4-rei",
+    "template": "T03",
+    "character": "rei",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "明天还想吃吗？"
+  },
+  {
+    "id": "T03-L4-asuka",
+    "template": "T03",
+    "character": "asuka",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "明天还想吃吗？"
+  },
+  {
+    "id": "T03-L5-rei",
+    "template": "T03",
+    "character": "rei",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你一个人吃饭不觉得无聊吗？"
+  },
+  {
+    "id": "T03-L5-asuka",
+    "template": "T03",
+    "character": "asuka",
+    "situation": "午休时，有人在食堂把便当递到你面前。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你一个人吃饭不觉得无聊吗？"
+  },
+  {
+    "id": "T04-L1-rei",
+    "template": "T04",
+    "character": "rei",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "这次的成绩下滑得很厉害。"
+  },
+  {
+    "id": "T04-L1-asuka",
+    "template": "T04",
+    "character": "asuka",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "这次的成绩下滑得很厉害。"
+  },
+  {
+    "id": "T04-L2-rei",
+    "template": "T04",
+    "character": "rei",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "训练和学业兼顾很辛苦吧？"
+  },
+  {
+    "id": "T04-L2-asuka",
+    "template": "T04",
+    "character": "asuka",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "训练和学业兼顾很辛苦吧？"
+  },
+  {
+    "id": "T04-L3-rei",
+    "template": "T04",
+    "character": "rei",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "有什么困难可以跟我说。"
+  },
+  {
+    "id": "T04-L3-asuka",
+    "template": "T04",
+    "character": "asuka",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "有什么困难可以跟我说。"
+  },
+  {
+    "id": "T04-L4-rei",
+    "template": "T04",
+    "character": "rei",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "家长会谁会来参加？"
+  },
+  {
+    "id": "T04-L4-asuka",
+    "template": "T04",
+    "character": "asuka",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "家长会谁会来参加？"
+  },
+  {
+    "id": "T04-L5-rei",
+    "template": "T04",
+    "character": "rei",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "下次考试有信心吗？"
+  },
+  {
+    "id": "T04-L5-asuka",
+    "template": "T04",
+    "character": "asuka",
+    "situation": "你在走廊被叫住，对方手里拿着你的成绩单。",
+    "speaker": "班主任",
+    "line": "下次考试有信心吗？"
+  },
+  {
+    "id": "T05-L1-rei",
+    "template": "T05",
+    "character": "rei",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我有点害怕。"
+  },
+  {
+    "id": "T05-L1-asuka",
+    "template": "T05",
+    "character": "asuka",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我有点害怕。"
+  },
+  {
+    "id": "T05-L2-rei",
+    "template": "T05",
+    "character": "rei",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这次的敌人好像很强。"
+  },
+  {
+    "id": "T05-L2-asuka",
+    "template": "T05",
+    "character": "asuka",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这次的敌人好像很强。"
+  },
+  {
+    "id": "T05-L3-rei",
+    "template": "T05",
+    "character": "rei",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "如果我拖了后腿怎么办？"
+  },
+  {
+    "id": "T05-L3-asuka",
+    "template": "T05",
+    "character": "asuka",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "如果我拖了后腿怎么办？"
+  },
+  {
+    "id": "T05-L4-rei",
+    "template": "T05",
+    "character": "rei",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你一点都不紧张吗？"
+  },
+  {
+    "id": "T05-L4-asuka",
+    "template": "T05",
+    "character": "asuka",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你一点都不紧张吗？"
+  },
+  {
+    "id": "T05-L5-rei",
+    "template": "T05",
+    "character": "rei",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "活着回来吧。"
+  },
+  {
+    "id": "T05-L5-asuka",
+    "template": "T05",
+    "character": "asuka",
+    "situation": "出击前的待机室，警报灯在闪。",
+    "speaker": "同队的少年驾驶员",
+    "line": "活着回来吧。"
+  },
+  {
+    "id": "T07-L1-rei",
+    "template": "T07",
+    "character": "rei",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "好巧，你也来买东西？"
+  },
+  {
+    "id": "T07-L1-asuka",
+    "template": "T07",
+    "character": "asuka",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "好巧，你也来买东西？"
+  },
+  {
+    "id": "T07-L2-rei",
+    "template": "T07",
+    "character": "rei",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "这条裙子很适合你哦。"
+  },
+  {
+    "id": "T07-L2-asuka",
+    "template": "T07",
+    "character": "asuka",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "这条裙子很适合你哦。"
+  },
+  {
+    "id": "T07-L3-rei",
+    "template": "T07",
+    "character": "rei",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "要不要一起去喝杯饮料？"
+  },
+  {
+    "id": "T07-L3-asuka",
+    "template": "T07",
+    "character": "asuka",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "要不要一起去喝杯饮料？"
+  },
+  {
+    "id": "T07-L4-rei",
+    "template": "T07",
+    "character": "rei",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "你平时穿便服的样子很少见呢。"
+  },
+  {
+    "id": "T07-L4-asuka",
+    "template": "T07",
+    "character": "asuka",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "你平时穿便服的样子很少见呢。"
+  },
+  {
+    "id": "T07-L5-rei",
+    "template": "T07",
+    "character": "rei",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "下次一起来逛吧。"
+  },
+  {
+    "id": "T07-L5-asuka",
+    "template": "T07",
+    "character": "asuka",
+    "situation": "周末的商场里，你偶然碰到熟人。",
+    "speaker": "同班的女同学",
+    "line": "下次一起来逛吧。"
+  },
+  {
+    "id": "T08-L1-rei",
+    "template": "T08",
+    "character": "rei",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "命中率是全队第一。"
+  },
+  {
+    "id": "T08-L1-asuka",
+    "template": "T08",
+    "character": "asuka",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "命中率是全队第一。"
+  },
+  {
+    "id": "T08-L2-rei",
+    "template": "T08",
+    "character": "rei",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "反应速度还可以再快一点。"
+  },
+  {
+    "id": "T08-L2-asuka",
+    "template": "T08",
+    "character": "asuka",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "反应速度还可以再快一点。"
+  },
+  {
+    "id": "T08-L3-rei",
+    "template": "T08",
+    "character": "rei",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "保持这个状态。"
+  },
+  {
+    "id": "T08-L3-asuka",
+    "template": "T08",
+    "character": "asuka",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "保持这个状态。"
+  },
+  {
+    "id": "T08-L4-rei",
+    "template": "T08",
+    "character": "rei",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "你对这个结果满意吗？"
+  },
+  {
+    "id": "T08-L4-asuka",
+    "template": "T08",
+    "character": "asuka",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "你对这个结果满意吗？"
+  },
+  {
+    "id": "T08-L5-rei",
+    "template": "T08",
+    "character": "rei",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "明天开始换新的训练科目。"
+  },
+  {
+    "id": "T08-L5-asuka",
+    "template": "T08",
+    "character": "asuka",
+    "situation": "训练场上，你的射击成绩刚刚公布。",
+    "speaker": "作战指挥官",
+    "line": "明天开始换新的训练科目。"
+  },
+  {
+    "id": "T09-L1-rei",
+    "template": "T09",
+    "character": "rei",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这么晚了还不睡吗？"
+  },
+  {
+    "id": "T09-L1-asuka",
+    "template": "T09",
+    "character": "asuka",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这么晚了还不睡吗？"
+  },
+  {
+    "id": "T09-L2-rei",
+    "template": "T09",
+    "character": "rei",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你在看星星？"
+  },
+  {
+    "id": "T09-L2-asuka",
+    "template": "T09",
+    "character": "asuka",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你在看星星？"
+  },
+  {
+    "id": "T09-L3-rei",
+    "template": "T09",
+    "character": "rei",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我也睡不着。"
+  },
+  {
+    "id": "T09-L3-asuka",
+    "template": "T09",
+    "character": "asuka",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我也睡不着。"
+  },
+  {
+    "id": "T09-L4-rei",
+    "template": "T09",
+    "character": "rei",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "明天还有训练呢。"
+  },
+  {
+    "id": "T09-L4-asuka",
+    "template": "T09",
+    "character": "asuka",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "明天还有训练呢。"
+  },
+  {
+    "id": "T09-L5-rei",
+    "template": "T09",
+    "character": "rei",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我可以坐在这里吗？"
+  },
+  {
+    "id": "T09-L5-asuka",
+    "template": "T09",
+    "character": "asuka",
+    "situation": "深夜的宿舍楼下，有人看到你独自坐在台阶上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我可以坐在这里吗？"
+  },
+  {
+    "id": "T11-L1-rei",
+    "template": "T11",
+    "character": "rei",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "这次的主攻交给你。"
+  },
+  {
+    "id": "T11-L1-asuka",
+    "template": "T11",
+    "character": "asuka",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "这次的主攻交给你。"
+  },
+  {
+    "id": "T11-L2-rei",
+    "template": "T11",
+    "character": "rei",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "有没有问题？"
+  },
+  {
+    "id": "T11-L2-asuka",
+    "template": "T11",
+    "character": "asuka",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "有没有问题？"
+  },
+  {
+    "id": "T11-L3-rei",
+    "template": "T11",
+    "character": "rei",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "风险很高，你可以拒绝。"
+  },
+  {
+    "id": "T11-L3-asuka",
+    "template": "T11",
+    "character": "asuka",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "风险很高，你可以拒绝。"
+  },
+  {
+    "id": "T11-L4-rei",
+    "template": "T11",
+    "character": "rei",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "其他人负责掩护你。"
+  },
+  {
+    "id": "T11-L4-asuka",
+    "template": "T11",
+    "character": "asuka",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "其他人负责掩护你。"
+  },
+  {
+    "id": "T11-L5-rei",
+    "template": "T11",
+    "character": "rei",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "我相信你能做到。"
+  },
+  {
+    "id": "T11-L5-asuka",
+    "template": "T11",
+    "character": "asuka",
+    "situation": "作战会议上，指挥官刚刚宣布由你担任主攻。",
+    "speaker": "作战指挥官",
+    "line": "我相信你能做到。"
+  },
+  {
+    "id": "T13-L1-rei",
+    "template": "T13",
+    "character": "rei",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "请问能和你交个朋友吗？"
+  },
+  {
+    "id": "T13-L1-asuka",
+    "template": "T13",
+    "character": "asuka",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "请问能和你交个朋友吗？"
+  },
+  {
+    "id": "T13-L2-rei",
+    "template": "T13",
+    "character": "rei",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "我一直很在意你。"
+  },
+  {
+    "id": "T13-L2-asuka",
+    "template": "T13",
+    "character": "asuka",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "我一直很在意你。"
+  },
+  {
+    "id": "T13-L3-rei",
+    "template": "T13",
+    "character": "rei",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "能告诉我你的联系方式吗？"
+  },
+  {
+    "id": "T13-L3-asuka",
+    "template": "T13",
+    "character": "asuka",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "能告诉我你的联系方式吗？"
+  },
+  {
+    "id": "T13-L4-rei",
+    "template": "T13",
+    "character": "rei",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "周末有空一起看电影吗？"
+  },
+  {
+    "id": "T13-L4-asuka",
+    "template": "T13",
+    "character": "asuka",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "周末有空一起看电影吗？"
+  },
+  {
+    "id": "T13-L5-rei",
+    "template": "T13",
+    "character": "rei",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "抱歉，突然说这些。"
+  },
+  {
+    "id": "T13-L5-asuka",
+    "template": "T13",
+    "character": "asuka",
+    "situation": "放学路上，有男生在路口拦住你。",
+    "speaker": "隔壁班的男生",
+    "line": "抱歉，突然说这些。"
+  },
+  {
+    "id": "T15-L1-rei",
+    "template": "T15",
+    "character": "rei",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "哎呀，好像烧焦了。"
+  },
+  {
+    "id": "T15-L1-asuka",
+    "template": "T15",
+    "character": "asuka",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "哎呀，好像烧焦了。"
+  },
+  {
+    "id": "T15-L2-rei",
+    "template": "T15",
+    "character": "rei",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "第一次做饭吗？"
+  },
+  {
+    "id": "T15-L2-asuka",
+    "template": "T15",
+    "character": "asuka",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "第一次做饭吗？"
+  },
+  {
+    "id": "T15-L3-rei",
+    "template": "T15",
+    "character": "rei",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "要不要我帮忙？"
+  },
+  {
+    "id": "T15-L3-asuka",
+    "template": "T15",
+    "character": "asuka",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "要不要我帮忙？"
+  },
+  {
+    "id": "T15-L4-rei",
+    "template": "T15",
+    "character": "rei",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "其实焦一点也能吃。"
+  },
+  {
+    "id": "T15-L4-asuka",
+    "template": "T15",
+    "character": "asuka",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "其实焦一点也能吃。"
+  },
+  {
+    "id": "T15-L5-rei",
+    "template": "T15",
+    "character": "rei",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "下次我教你吧。"
+  },
+  {
+    "id": "T15-L5-asuka",
+    "template": "T15",
+    "character": "asuka",
+    "situation": "厨房里，你第一次尝试自己做饭，锅里冒出了焦味。",
+    "speaker": "同住的监护人",
+    "line": "下次我教你吧。"
+  },
+  {
+    "id": "T16-L1-rei",
+    "template": "T16",
+    "character": "rei",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "一起下水玩吧！"
+  },
+  {
+    "id": "T16-L1-asuka",
+    "template": "T16",
+    "character": "asuka",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "一起下水玩吧！"
+  },
+  {
+    "id": "T16-L2-rei",
+    "template": "T16",
+    "character": "rei",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "你不会游泳吗？"
+  },
+  {
+    "id": "T16-L2-asuka",
+    "template": "T16",
+    "character": "asuka",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "你不会游泳吗？"
+  },
+  {
+    "id": "T16-L3-rei",
+    "template": "T16",
+    "character": "rei",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "站在这里不热吗？"
+  },
+  {
+    "id": "T16-L3-asuka",
+    "template": "T16",
+    "character": "asuka",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "站在这里不热吗？"
+  },
+  {
+    "id": "T16-L4-rei",
+    "template": "T16",
+    "character": "rei",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "我给你拍张照吧。"
+  },
+  {
+    "id": "T16-L4-asuka",
+    "template": "T16",
+    "character": "asuka",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "我给你拍张照吧。"
+  },
+  {
+    "id": "T16-L5-rei",
+    "template": "T16",
+    "character": "rei",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "难得出来玩，开心一点嘛。"
+  },
+  {
+    "id": "T16-L5-asuka",
+    "template": "T16",
+    "character": "asuka",
+    "situation": "海边的修学旅行，同学们都在玩水，你一个人站在岸边。",
+    "speaker": "同班的女同学",
+    "line": "难得出来玩，开心一点嘛。"
+  },
+  {
+    "id": "T18-L1-rei",
+    "template": "T18",
+    "character": "rei",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你也被雨困住了？"
+  },
+  {
+    "id": "T18-L1-asuka",
+    "template": "T18",
+    "character": "asuka",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你也被雨困住了？"
+  },
+  {
+    "id": "T18-L2-rei",
+    "template": "T18",
+    "character": "rei",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我只买到了一把伞。"
+  },
+  {
+    "id": "T18-L2-asuka",
+    "template": "T18",
+    "character": "asuka",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我只买到了一把伞。"
+  },
+  {
+    "id": "T18-L3-rei",
+    "template": "T18",
+    "character": "rei",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "要不一起撑吧？"
+  },
+  {
+    "id": "T18-L3-asuka",
+    "template": "T18",
+    "character": "asuka",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "要不一起撑吧？"
+  },
+  {
+    "id": "T18-L4-rei",
+    "template": "T18",
+    "character": "rei",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你冷不冷？"
+  },
+  {
+    "id": "T18-L4-asuka",
+    "template": "T18",
+    "character": "asuka",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你冷不冷？"
+  },
+  {
+    "id": "T18-L5-rei",
+    "template": "T18",
+    "character": "rei",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这把伞给你，我跑回去就好。"
+  },
+  {
+    "id": "T18-L5-asuka",
+    "template": "T18",
+    "character": "asuka",
+    "situation": "雨夜的便利店门口，有人和你一起躲雨。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这把伞给你，我跑回去就好。"
+  },
+  {
+    "id": "T19-L1-rei",
+    "template": "T19",
+    "character": "rei",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "承让了。"
+  },
+  {
+    "id": "T19-L1-asuka",
+    "template": "T19",
+    "character": "asuka",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "承让了。"
+  },
+  {
+    "id": "T19-L2-rei",
+    "template": "T19",
+    "character": "rei",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "你刚才最后那一下有点慢。"
+  },
+  {
+    "id": "T19-L2-asuka",
+    "template": "T19",
+    "character": "asuka",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "你刚才最后那一下有点慢。"
+  },
+  {
+    "id": "T19-L3-rei",
+    "template": "T19",
+    "character": "rei",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "要不要再来一局？"
+  },
+  {
+    "id": "T19-L3-asuka",
+    "template": "T19",
+    "character": "asuka",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "要不要再来一局？"
+  },
+  {
+    "id": "T19-L4-rei",
+    "template": "T19",
+    "character": "rei",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "听说你是这里最强的？"
+  },
+  {
+    "id": "T19-L4-asuka",
+    "template": "T19",
+    "character": "asuka",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "听说你是这里最强的？"
+  },
+  {
+    "id": "T19-L5-rei",
+    "template": "T19",
+    "character": "rei",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "下次请多指教。"
+  },
+  {
+    "id": "T19-L5-asuka",
+    "template": "T19",
+    "character": "asuka",
+    "situation": "一场模拟战你输给了新来的队员。",
+    "speaker": "新来的驾驶员",
+    "line": "下次请多指教。"
+  },
+  {
+    "id": "T20-L1-rei",
+    "template": "T20",
+    "character": "rei",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你在看什么书？"
+  },
+  {
+    "id": "T20-L1-asuka",
+    "template": "T20",
+    "character": "asuka",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你在看什么书？"
+  },
+  {
+    "id": "T20-L2-rei",
+    "template": "T20",
+    "character": "rei",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这里可以坐吗？"
+  },
+  {
+    "id": "T20-L2-asuka",
+    "template": "T20",
+    "character": "asuka",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这里可以坐吗？"
+  },
+  {
+    "id": "T20-L3-rei",
+    "template": "T20",
+    "character": "rei",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你经常来图书馆吗？"
+  },
+  {
+    "id": "T20-L3-asuka",
+    "template": "T20",
+    "character": "asuka",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你经常来图书馆吗？"
+  },
+  {
+    "id": "T20-L4-rei",
+    "template": "T20",
+    "character": "rei",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这本书好看吗？"
+  },
+  {
+    "id": "T20-L4-asuka",
+    "template": "T20",
+    "character": "asuka",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "这本书好看吗？"
+  },
+  {
+    "id": "T20-L5-rei",
+    "template": "T20",
+    "character": "rei",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我也想找本书看看。"
+  },
+  {
+    "id": "T20-L5-asuka",
+    "template": "T20",
+    "character": "asuka",
+    "situation": "你在图书馆看书时，有人坐到了对面。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我也想找本书看看。"
+  },
+  {
+    "id": "T21-L1-rei",
+    "template": "T21",
+    "character": "rei",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "你家里人没来吗？"
+  },
+  {
+    "id": "T21-L1-asuka",
+    "template": "T21",
+    "character": "asuka",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "你家里人没来吗？"
+  },
+  {
+    "id": "T21-L2-rei",
+    "template": "T21",
+    "character": "rei",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "要不要和我家人一起吃午饭？"
+  },
+  {
+    "id": "T21-L2-asuka",
+    "template": "T21",
+    "character": "asuka",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "要不要和我家人一起吃午饭？"
+  },
+  {
+    "id": "T21-L3-rei",
+    "template": "T21",
+    "character": "rei",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "我妈做的便当很好吃哦。"
+  },
+  {
+    "id": "T21-L3-asuka",
+    "template": "T21",
+    "character": "asuka",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "我妈做的便当很好吃哦。"
+  },
+  {
+    "id": "T21-L4-rei",
+    "template": "T21",
+    "character": "rei",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "你不难过吗？"
+  },
+  {
+    "id": "T21-L4-asuka",
+    "template": "T21",
+    "character": "asuka",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "你不难过吗？"
+  },
+  {
+    "id": "T21-L5-rei",
+    "template": "T21",
+    "character": "rei",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "下次参观日他们会来吗？"
+  },
+  {
+    "id": "T21-L5-asuka",
+    "template": "T21",
+    "character": "asuka",
+    "situation": "家长参观日，同学们的家人都来了，只有你没有人来。",
+    "speaker": "同班同学",
+    "line": "下次参观日他们会来吗？"
+  },
+  {
+    "id": "T23-L1-rei",
+    "template": "T23",
+    "character": "rei",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "早啊，你每天都这么早吗？"
+  },
+  {
+    "id": "T23-L1-asuka",
+    "template": "T23",
+    "character": "asuka",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "早啊，你每天都这么早吗？"
+  },
+  {
+    "id": "T23-L2-rei",
+    "template": "T23",
+    "character": "rei",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我可以跟你一起跑吗？"
+  },
+  {
+    "id": "T23-L2-asuka",
+    "template": "T23",
+    "character": "asuka",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我可以跟你一起跑吗？"
+  },
+  {
+    "id": "T23-L3-rei",
+    "template": "T23",
+    "character": "rei",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你跑得好快。"
+  },
+  {
+    "id": "T23-L3-asuka",
+    "template": "T23",
+    "character": "asuka",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你跑得好快。"
+  },
+  {
+    "id": "T23-L4-rei",
+    "template": "T23",
+    "character": "rei",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "跑完要不要去吃早饭？"
+  },
+  {
+    "id": "T23-L4-asuka",
+    "template": "T23",
+    "character": "asuka",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "跑完要不要去吃早饭？"
+  },
+  {
+    "id": "T23-L5-rei",
+    "template": "T23",
+    "character": "rei",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我快跑不动了。"
+  },
+  {
+    "id": "T23-L5-asuka",
+    "template": "T23",
+    "character": "asuka",
+    "situation": "清晨的跑道上，你在晨练，有人跟上来和你并排跑。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我快跑不动了。"
+  },
+  {
+    "id": "T24-L1-rei",
+    "template": "T24",
+    "character": "rei",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "这是情书吧？"
+  },
+  {
+    "id": "T24-L1-asuka",
+    "template": "T24",
+    "character": "asuka",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "这是情书吧？"
+  },
+  {
+    "id": "T24-L2-rei",
+    "template": "T24",
+    "character": "rei",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "是谁写的？"
+  },
+  {
+    "id": "T24-L2-asuka",
+    "template": "T24",
+    "character": "asuka",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "是谁写的？"
+  },
+  {
+    "id": "T24-L3-rei",
+    "template": "T24",
+    "character": "rei",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "你打算怎么回复？"
+  },
+  {
+    "id": "T24-L3-asuka",
+    "template": "T24",
+    "character": "asuka",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "你打算怎么回复？"
+  },
+  {
+    "id": "T24-L4-rei",
+    "template": "T24",
+    "character": "rei",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "快读给我听听！"
+  },
+  {
+    "id": "T24-L4-asuka",
+    "template": "T24",
+    "character": "asuka",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "快读给我听听！"
+  },
+  {
+    "id": "T24-L5-rei",
+    "template": "T24",
+    "character": "rei",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "你好像一点都不惊讶。"
+  },
+  {
+    "id": "T24-L5-asuka",
+    "template": "T24",
+    "character": "asuka",
+    "situation": "你收到一封写着你名字的信，有人站在旁边看着你拆。",
+    "speaker": "同班的女同学",
+    "line": "你好像一点都不惊讶。"
+  }
+]

@@ -1,4 +1,4 @@
-"""Offline API transport fixtures and distributed reward/precision checks; no paid calls."""
+"""Offline API transport fixtures and precision checks; no paid calls."""
 from contextlib import contextmanager
 import io
 import json
@@ -10,8 +10,6 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 
 from characore.api_judge import APIJudge, NoRedirect, settings
-from characore.distributed_rewards import check_payloads
-from characore.grpo_rewards import UnusableReward
 from characore.judge_runner import call_judge, judge_identity
 from characore.precision import select_precision
 
@@ -96,9 +94,8 @@ class APIClusterTests(unittest.TestCase):
 
     def test_incomplete_or_invalid_provider_response_is_preserved(self):
         from characore.judge import make_request
-        context=dict(id="test", character="Guard", action_required=True,
-                     visible_turns=[dict(source_line=1,speaker="Player",text="Check first")])
-        req=make_request(context,{"A":"Check","B":"Open"},{})
+        context=dict(character="rei", situation="Classroom", speaker="Classmate", line="Umbrella?")
+        req=make_request(context,{"A":"No.","B":"Of course!"})
         req["id"]="test"
         with self.config(style="responses") as path, patch("urllib.request.build_opener") as factory:
             factory.return_value.open.return_value=io.BytesIO(json.dumps(dict(status="incomplete",output=[])).encode())
@@ -140,20 +137,6 @@ class APIClusterTests(unittest.TestCase):
             select_precision("cuda","bf16",(7,0))
         with self.assertRaises(ValueError):
             select_precision("cpu","fp16")
-
-    def test_cross_rank_rewards_groups_and_failure(self):
-        payloads=[dict(values=[0],keys=["same"],error=None),dict(values=[1],keys=["same"],error=None)]
-        check_payloads(payloads,2)
-        payloads[1]["keys"]=["different"]
-        with self.assertRaisesRegex(UnusableReward,"different"):
-            check_payloads(payloads,2)
-        payloads[1]["error"]="TimeoutError"
-        with self.assertRaisesRegex(UnusableReward,"all ranks"):
-            check_payloads(payloads,2)
-        # An all-equal group means zero advantage for every sample: a no-op update
-        # that is counted and reported, not a corrupt batch to abort on.
-        payloads[1]=dict(values=[0],keys=["same"],error=None)
-        self.assertEqual(check_payloads(payloads,2),1)
 
 
 if __name__ == "__main__":

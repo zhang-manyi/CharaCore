@@ -1,123 +1,105 @@
-# Qwen3-8B、双 V100 与 API 裁判
+# 集群快速开始：Qwen3-4B、单张 V100、API 裁判
 
-策略模型固定为 ModelScope `Qwen/Qwen3-8B`，裁判配置为 OpenAI API 的 `gpt-6-astra`。`.env.example` 使用官方地址 `https://api.openai.com/v1` 和 Chat Completions。账户模型权限与实际调用仍需验证；配置检查不会联网，必须显式 `--allow-api` 才发送裁判材料。
+集群节点不能访问 GitHub，代码用 git bundle 传输。以下命令都是单行，可逐条粘贴；长任务放进 tmux。
 
-## 1. 更新代码、下载策略模型
+## 1. 传代码
 
-在分配给你的集群节点、已有 `characore` 环境中：
+开发机（仓库根目录）：
 
 ```bash
-cd ~/projects/CharaCore
+git bundle create ../characore.bundle main
+scp -P 20819 ../characore.bundle zhangmy@172.20.10.250:/home/zhangmy/projects/
+```
+
+集群：
+
+```bash
+cd /home/zhangmy/projects/CharaCore
 conda activate characore
-git pull --ff-only origin main
-python -m unittest discover -s tests -v
-python -m pip install modelscope
-modelscope download --model Qwen/Qwen3-8B --local_dir "$HOME/models/Qwen3-8B"
-export CHARACORE_POLICY_MODEL="$HOME/models/Qwen3-8B"
+git pull ../characore.bundle main
+python -m unittest discover -s tests
 ```
 
-已有完整下载时直接设置路径，无需重复下载。不需要安装 vLLM，不需要下载本地裁判模型；API 适配器使用 Python 标准库。推理和训练加载本地模型时继续禁止自动联网下载。
-
-## 2. 填写 API 密钥
+## 2. 下载策略模型（只需一次）
 
 ```bash
-test -f .env || cp .env.example .env
-chmod 600 .env
-nano .env
+modelscope download --model Qwen/Qwen3-4B --local_dir /home/zhangmy/models/Qwen3-4B
+export CHARACORE_POLICY_MODEL=/home/zhangmy/models/Qwen3-4B
 ```
 
-只修改你实际使用的参数，特别是密钥：
+加载一律离线，不会自动下载；路径不对会直接报错。
+
+## 3. 配置裁判
+
+`.env` 不随 bundle 传输，在集群上单独维护（`cp .env.example .env`，`chmod 600 .env`）。中转地址与模型：
 
 ```dotenv
-CHARACORE_JUDGE_BASE_URL=https://api.openai.com/v1
-CHARACORE_JUDGE_API_KEY=这里填你的OpenAI_API密钥
+CHARACORE_JUDGE_BASE_URL=https://naiccc.com/v1
 CHARACORE_JUDGE_MODEL=gpt-6-astra
 CHARACORE_JUDGE_API_STYLE=chat_completions
-CHARACORE_JUDGE_MAX_TOKENS=4096
-CHARACORE_JUDGE_TIMEOUT_SECONDS=120
-CHARACORE_JUDGE_MAX_CALLS=100
-CHARACORE_JUDGE_MAX_INPUT_BYTES=16384
-CHARACORE_JUDGE_JSON_MODE=true
+CHARACORE_JUDGE_MAX_CALLS=5000
 ```
 
-程序自动读取项目根目录 `.env`，无需 `source .env`；已导出的同名环境变量优先。`.env` 被 Git 忽略，`.env.example` 纳入版本控制。不要把密钥写进 Python、命令行参数或文档。若选择 Responses，设置 `API_STYLE=responses`；不要把完整 `/chat/completions` 或 `/responses` 路径填入BASE_URL。
-
-## 3. 先检查配置，再调用一次
+`MAX_CALLS` 按进程计；最坏情况每步 `prompts_per_step × group_size × 2` 次（默认 2×8×2=32，150 步约 4800 次），同批复用、硬违规与逐字节相同不发起调用，实际更少。
 
 ```bash
-# 不联网、不扣费，不显示密钥
 python scripts/check_judge_api.py
-
-# 会向配置的API发送一个原创合成案例；最多一次请求，不自动重试
 python scripts/check_judge_api.py --allow-api --output runs/api_smoke_01
 ```
 
-第二条正常时输出 `status=ok`；这只验证连通性和JSON格式，`calibration_passed`仍为false（裁判可靠性未校准，见第8节）。`runs/api_smoke_01/call/`保存请求、原始模型返回、用量及严格解析结果。404需检查API路径/模型ID，401/403检查密钥及账户权限，400检查接口支持的参数；不得自动换模型或补造必需字段。JSON mode关闭时仍执行本地严格解析。需要进一步诊断时提供脱敏失败记录，不发送`.env`。
+第一条不联网；第二条只发一个合成请求，验证连通与严格解析。
 
-官方[GPT-6 Astra模型页](https://developers.openai.com/api/docs/models/gpt-6-astra)列出`gpt-6-astra`；API样式对应官方 [Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) 与 [Responses](https://developers.openai.com/api/reference/resources/responses/methods/create) 的请求格式。不强制temperature或reasoning参数；记录实际返回的model和usage。4096输出预算可能包含推理token，若返回不完整会拒绝评分，不擅自加预算。请求设置`store=false`。
-
-## 4. 跑 Qwen3-8B 真实基线
+## 4. 冻结基座回复（只需一次）
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python -B scripts/run_agent.py run \
-  --policy local --base "$CHARACORE_POLICY_MODEL" \
-  --device cuda --precision fp16 \
-  --max-steps 12 --max-new-tokens 192 \
-  --output runs/qwen3_8b_baseline_01
+CUDA_VISIBLE_DEVICES=0 python scripts/generate_base_replies.py --base $CHARACORE_POLICY_MODEL --suite experiments/style_v1 --output experiments/style_v1_base_qwen3_4b
 ```
 
-这一步只推理，不训练，不调用裁判API。V100 compute capability 7.0不原生支持BF16；`--precision auto`也会选FP16，而不依据可能包含模拟支持的`is_bf16_supported()`。返回码2表示模型任务未完成，先看轨迹，不等同于程序安装失败。
+产物 `replies.json` 与 `freeze.json` 应提交回仓库（集群上 `git add` 后用 bundle 带回，或 scp 回开发机），之后所有训练与评测都绑定它。
+
+## 5. 裁判顺序一致性与重复一致率
 
 ```bash
-python scripts/run_agent.py replay runs/qwen3_8b_baseline_01/episode/trajectory.json
+python scripts/check_judge_order.py --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --output runs/judge_order_01 --cases 10 --allow-api
 ```
 
-## 5. 验证双进程，再准备真实双卡训练
+30 次调用。看 `summary.json` 的 `usable_rate`（AB/BA 一致）与 `repeat_agreement`（相同请求两次结论相同）。
 
-Linux节点可先运行无模型、无API的CPU双进程检查：
+## 6. survey
 
 ```bash
-torchrun --standalone --nproc_per_node=2 scripts/train_grpo.py \
-  --tiny --steps 2 --output runs/cluster_ddp_tiny_01
+CUDA_VISIBLE_DEVICES=0 python scripts/survey_sampling.py --base $CHARACORE_POLICY_MODEL --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --output runs/survey_01 --judge-backend api --allow-api --judge-rows 20
 ```
 
-检查两个 `rank_0000/verification.json`、`rank_0001/verification.json` 的 `world_size=2`、`optimizer_steps=2`、`ddp_adapter_parameters_equal=true` 及原来的五项更新证明。这个检查证明进程同步和CPU训练，不证明V100显存或吞吐。
+最多 320 次调用。`summary.json` 的 `gate.passed` 为 true 再训练；否则把 `varied_share`、`win_rate_vs_base`、`hard_rate` 发给我调整。
 
-这一步请务必在集群实际执行：开发机的 Windows 应用控制阻止了 pyarrow 的 DLL，而 `datasets` 依赖它，因此本机当前无法执行任何 TRL 代码路径。此前的双进程更新曾在本机用 Gloo/FileStore 验证通过，但那是该限制出现之前的记录，不能替代本次集群验证。Windows torchrun/TCPStore 因 libuv 构建限制未成功，不要把该 Windows 启动方式照搬到 Linux。
-
-## 6. 用桩裁判跑通完整训练路径
-
-训练数据随仓库提供在 `experiments/agent_v1/suite`（71 训练 / 4 评测检查点，由 `scripts/build_agent_suite.py` 在真实环境上 BFS 枚举生成，`git pull` 即可获得，无需另行准备）。先用不联网的桩裁判确认整条链路：
+## 7. 桩裁判跑通训练路径，再真实训练
 
 ```bash
-python scripts/train_grpo.py --preflight-only \
-  --base "$CHARACORE_POLICY_MODEL" --suite experiments/agent_v1/suite \
-  --judge-backend stub --output runs/preflight_01
-
-CUDA_VISIBLE_DEVICES=0 python -B scripts/train_grpo.py \
-  --base "$CHARACORE_POLICY_MODEL" --device cuda --precision fp16 \
-  --judge-backend stub --suite experiments/agent_v1/suite \
-  --group-size 4 --steps 2 --output runs/qwen3_8b_grpo_stub_01
+CUDA_VISIBLE_DEVICES=0 python scripts/train_grpo.py --base $CHARACORE_POLICY_MODEL --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --judge-backend stub --device cuda --precision fp16 --steps 3 --output runs/grpo_stub_01
 ```
 
-`--preflight-only` 不请求API、不加载模型、不更新参数。桩裁判只比较环境执行是否成功，用来验证请求构造、严格解析、AB/BA 一致性和奖励装配；**它不是质量信号**，这一步的产物不能当作角色一致性结果。这一步通过后，剩下的未知量只有显存和真实API。
-
-## 7. 真实API裁判的双卡训练
+桩裁判按规则分判定，只验证链路与显存，不是质量信号。通过后在 tmux 里跑真实训练：
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1 torchrun --standalone --nproc_per_node=2 scripts/train_grpo.py \
-  --base "$CHARACORE_POLICY_MODEL" --device cuda --precision fp16 \
-  --judge-backend api --allow-api \
-  --suite experiments/agent_v1/suite \
-  --group-size 4 --steps 2 --output runs/qwen3_8b_grpo_01
+tmux new -s grpo
 ```
 
-策略采用FP16基座+FP32 LoRA训练参数，TRL处理混合精度；每卡microbatch=1、累积4步、每组4样本。每进程生成一组，同步全局奖励和梯度；双卡各持有完整8B基座，不合并成64GB显存。单卡32GB的实际峰值仍需测量；显存不足时先降 `--group-size` 到 2。
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/train_grpo.py --base $CHARACORE_POLICY_MODEL --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --judge-backend api --allow-api --device cuda --precision fp16 --steps 150 --output runs/grpo_style_01
+```
 
-按rank独立保存请求/返回/适配器，避免双进程覆盖。每个进程100次API尝试上限包含重试；每个样本需要AB/BA两次调用，因此每进程每步约 `group_size × 2` 次，请据此核对 `CHARACORE_JUDGE_MAX_CALLS`。策略复现参考动作时判为平局且不发起调用。奖励异常先跨进程同步再同时拒绝更新，避免一边反向传播、一边已退出。失败仍留档；同分组不虚造学习信号。
+`Ctrl-b d` 脱离，`tmux attach -t grpo` 回来。显存不足时加 `--micro-batch 2`。
 
-## 8. 产物与限度
+## 8. 评测
 
-`runs/<name>/verification.json` 给出优化步数、LoRA参数变化、梯度有限非零、冻结参考未变、适配器重载一致以及DDP跨rank一致这几项证明；`before_development_eval.json` 与 `after_development_eval.json` 给出训练前后在4个评测检查点上的动作与执行结果。
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/eval_style.py --base $CHARACORE_POLICY_MODEL --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --output runs/eval_base_01 --allow-api
+CUDA_VISIBLE_DEVICES=0 python scripts/eval_style.py --base $CHARACORE_POLICY_MODEL --adapter runs/grpo_style_01/adapter --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --output runs/eval_grpo_01 --allow-api
+```
 
-限度需要一并说明：优化单位是**单步动作**，不是完整episode；评测检查点与训练检查点来自同一个原创任务族，是开发集而非独立盲测；API裁判与人工判断的一致率尚未测量，因此奖励可靠性未经校准。`runs/` 和模型不随Git下载。
+每次约 360 次调用。`report.json` 给胜率、规则指标、串角色率；`side_by_side.md` 是前后对照。训练曲线在 `runs/grpo_style_01/log_history.json` 的 `style/*` 字段，逐批明细在 `reward/rewards_*.json`。
+
+## 产物与限度
+
+`verification.json`：优化步数、LoRA 参数变化、梯度有限非零、冻结参考不变、适配器重载一致；DDP 一致性不适用（单卡）。裁判与人工一致率未测量，裁判类指标都是 uncalibrated。`runs/` 与模型不进 Git。

@@ -5,11 +5,10 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from characore.agent import dump
 from characore.api_judge import APIJudge
 from characore.judge import make_request
 from characore.judge_runner import call_judge
-from characore.protocol import read_json
+from characore.protocol import dump
 
 
 def main():
@@ -27,10 +26,9 @@ def main():
         return 0
     args.output.mkdir(parents=True, exist_ok=False)
     dump(args.output / "model.json", dict(metadata=policy.metadata, budget=policy.budget))
-    rubric = read_json(Path(__file__).resolve().parents[1] / "experiments/agent_v1/evaluation_plan.json")["rubric"]
-    context = dict(id="api-connectivity-only", character="设计角色：档案员", action_required=True,
-                   visible_turns=[dict(source_line=1, speaker="委托人", text="请先检查封条，保持档案密封。")])
-    req = make_request(context, {"A": "我先检查封条，保持档案密封。", "B": "我直接拆开档案。"}, rubric)
+    context = dict(character="rei", situation="放学后的教室里只剩你们两个人。", speaker="同班同学",
+                   line="你带伞了吗？")
+    req = make_request(context, {"A": "……没有。", "B": "哼，本小姐才不需要伞！"})
     req["id"] = "api_smoke"
     result = call_judge(req, policy, args.output / "call", retries=0)
     print(json.dumps(dict(status=result["final"]["call_status"], calibration_passed=False,

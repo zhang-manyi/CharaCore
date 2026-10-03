@@ -1,204 +1,274 @@
-"""Synthetic fixtures only. Rewards, group validation and the frozen-suite gate."""
-import copy
+"""Style reward, judge protocol, suite freeze and group-rejection checks. Standard library only
+(apply_rejection uses torch when it is importable)."""
 import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
 
-from characore.agent import TASK_ID, command, dump
-from characore.grpo_data import load_training_suite
-from characore.grpo_rewards import (ActionReward, REWARD_SPEC, UnusableReward, pair_reward,
-                                    restore, transition, validate_groups)
-from characore.judge import DIMS, PROTOCOL, parse_response
-from characore.judge_runner import identity
-from characore.protocol import digest, read_json
+from characore.judge import (ATTR_PROTOCOL, PROTOCOL, make_attribution_request, make_request,
+                             parse_attribution, parse_response)
+from characore.persona import CHARACTERS, persona_identity, policy_messages
+from characore.protocol import digest, dump
 from characore.stub_judge import StubJudge
+from characore.style_data import load_base_replies, load_suite
+from characore.style_rewards import (StyleReward, clean_reply, hard_violation, pair_outcome,
+                                     rule_metrics, style_score)
+from characore.style_trainer import apply_rejection
+
+ROOT = Path(__file__).resolve().parents[1]
+SUITE = ROOT / "experiments/style_v1"
+ROW = dict(id="T01-L1-rei", template="T01", character="rei", situation="放学后的教室。", speaker="同班同学",
+           line="你带伞了吗？")
+IDS = ["E1", "E2", "E3", "candidate:A", "candidate:B"]
 
 
-def judged(winner="A"):
-    dim = dict(status="scored", score=3, reason="Synthetic fixture only", evidence_ids=["E1"])
-    obj = dict(protocol=PROTOCOL, winner=winner, reason="Synthetic fixture only",
-               preference_evidence_ids=["E1"],
-               scores={side: {d: copy.deepcopy(dim) for d in DIMS} for side in ("A", "B")})
-    return dict(call_status="ok", judgement=obj, raw=json.dumps(obj))
+def judgement(winner="A", r=3, protocol=PROTOCOL):
+    dim = lambda score: dict(status="scored", score=score, reason="ok", evidence_ids=["E1"])
+    side = lambda: {"P": dim(3), "R": dim(r), "N": dim(3)}
+    return dict(protocol=protocol, winner=winner, scores={"A": side(), "B": side()}, reason="ok",
+                preference_evidence_ids=[] if winner in ("tie", "insufficient") else ["E1"])
 
 
-class RewardTests(unittest.TestCase):
-    def test_order_mapping_tie_and_failures(self):
-        self.assertEqual(pair_reward(judged("A"), judged("B")), 1)
-        self.assertEqual(pair_reward(judged("B"), judged("A")), 0)
-        self.assertEqual(pair_reward(judged("tie"), judged("tie")), .5)
-        missing_dim = judged()
-        missing_dim["judgement"]["scores"]["A"]["C"].update(status="insufficient", score=None)
-        for a, b in [(judged("A"), judged("A")), (judged("insufficient"), judged()),
-                     (dict(call_status="parse_error", judgement=None), judged()), (missing_dim, judged())]:
-            with self.assertRaises(UnusableReward):
-                pair_reward(a, b)
+def call(winner, mapping, r=3, status="ok"):
+    final = dict(call_status=status, judgement=judgement(winner, r) if status == "ok" else None)
+    return dict(final=final, mapping=mapping)
 
-    def test_tie_still_requires_reason_and_citation_key(self):
-        """A real judge omitted both keys on tie, reading 'cannot be empty' as 'may be absent'.
 
-        Dropping them loses the pairwise rationale, so the parse must fail rather
-        than default the keys; SYSTEM now states tie sends [] instead of omitting.
-        """
-        allowed = ["E1", "candidate:A", "candidate:B"]
-        for dropped in ("reason", "preference_evidence_ids"):
-            body = json.loads(judged("tie")["raw"])
-            del body[dropped]
-            result = parse_response(json.dumps(body), allowed, True)
-            self.assertEqual(result["call_status"], "parse_error")
-            self.assertEqual(result["error"], "Unexpected judge fields")
-        empty = json.loads(judged("tie")["raw"])
-        empty["preference_evidence_ids"] = []
-        self.assertEqual(parse_response(json.dumps(empty), allowed, True)["call_status"], "ok")
+class ScriptedJudge:
+    """Returns a fixed winner per displayed order, so order disagreement can be forced."""
 
-    def test_no_silent_zero_and_equal_groups_reported_not_rejected(self):
-        for values in ([None, 1], [float("nan"), 1], [float("inf"), 1], [True, 1], [1]):
-            with self.assertRaises(UnusableReward):
-                validate_groups(values, 2)
-        self.assertEqual(validate_groups([0, 1], 2), ([0, 1], 0))
-        # An all-equal group is a no-op update, not corrupt data: counted, not raised.
-        self.assertEqual(validate_groups([.5, .5], 2), ([.5, .5], 1))
+    def __init__(self, ab="A", ba="B", fail_on=None):
+        self.ab, self.ba, self.fail_on, self.calls = ab, ba, fail_on, 0
+        self.metadata = dict(kind="stub_judge", claim="test")
+        self.budget = {}
 
-    def test_actual_transition_and_no_future_input(self):
-        visible, row, progress = transition([], command("inspect_clue", clue_id="dispatch"))
-        self.assertEqual(progress, 1)
-        self.assertNotIn("积水", json.dumps(visible, ensure_ascii=False))
-        prefix = [command("inspect_clue", clue_id="dispatch"),
-                  command("submit_action", action="promise", promise="keep_sealed")]
-        _, row, progress = transition(prefix, prefix[-1])
-        self.assertTrue(row["tool_result"]["ok"])
-        self.assertEqual(progress, 0)
-        _, row, progress = transition(prefix, command("submit_action", action="open"))
-        self.assertEqual(row["tool_result"]["error"], "commitment_violation")
+    def check_input(self, messages, input_limit=None):
+        return None
+
+    def __call__(self, messages):
+        self.calls += 1
+        data = json.loads(messages[1]["content"])
+        if self.fail_on and self.fail_on in data["candidate_A"] + data["candidate_B"]:
+            return "not json", dict(finish_reason="stop")
+        # The policy reply is shown first in AB order; the base reply mentions "base".
+        first_is_policy = "base" not in data["candidate_A"]
+        return json.dumps(judgement(self.ab if first_is_policy else self.ba)), dict(finish_reason="stop")
+
+
+def batch(replies, rows=None, group=2, base="……base"):
+    rows = rows or [ROW] * len(replies)
+    pick = lambda k: [r[k] for r in rows]
+    return dict(prompts=pick("id"), completions=replies, row_id=pick("id"), character=pick("character"),
+                base_reply=[base] * len(replies), situation=pick("situation"), speaker=pick("speaker"),
+                line=pick("line"))
+
+
+class RuleTests(unittest.TestCase):
+    def test_hard_violations(self):
+        self.assertEqual(hard_violation("嗯", "rei"), "length")
+        self.assertEqual(hard_violation("作为AI，我无法回答。", "rei"), "out_of_character")
+        self.assertEqual(hard_violation("本小姐带了伞。", "rei"), "impersonation")
+        self.assertEqual(hard_violation("我是明日香，伞给你。", "rei"), "impersonation")
+        self.assertEqual(hard_violation("凌波丽：……没有带。", "rei"), "speaker_prefix")
+        self.assertEqual(hard_violation("哼哼哼，才不要给你。", "asuka"), "catchphrase_cap")
+        self.assertEqual(hard_violation("……没有。\n……嗯。", "rei"), "multi_line")
+        self.assertIsNone(hard_violation("……没有带。", "rei"))
+        self.assertIsNone(hard_violation("哼，这种事还用问吗？", "asuka"))
+
+    def test_style_score_is_capped_and_persona_specific(self):
+        quiet, loud = "……没有带。", "哼，笨蛋，我当然带了！"
+        self.assertGreater(style_score(quiet, "rei"), style_score(loud, "rei"))
+        self.assertGreater(style_score(loud, "asuka"), style_score(quiet, "asuka"))
+        # Repeating a marker earns nothing beyond its first appearance.
+        self.assertEqual(style_score("……嗯……没有带。", "rei"), style_score("……嗯，没有带。", "rei"))
+        for reply in (quiet, loud, "好的。"):
+            for c in CHARACTERS:
+                self.assertTrue(0 <= style_score(reply, c) <= 1)
+
+    def test_clean_reply_strips_only_empty_think(self):
+        self.assertEqual(clean_reply("<think>\n\n</think>\n\n……没有。 "), "……没有。")
+        self.assertEqual(clean_reply("<think>想</think>没有"), "<think>想</think>没有")
+
+    def test_rule_metrics_counts(self):
+        m = rule_metrics(["……没有带。", "作为AI我不知道"], ["rei", "rei"])
+        self.assertEqual(m["hard_violation_rate"], 0.5)
+        self.assertEqual(m["hard_reasons"], {"out_of_character": 1})
+
+
+class JudgeProtocolTests(unittest.TestCase):
+    def test_request_hides_mapping_and_swaps(self):
+        ab = make_request(ROW, {"A": "x", "B": "y"})
+        ba = make_request(ROW, {"A": "x", "B": "y"}, reverse=True)
+        data = json.loads(ba["messages"][1]["content"])
+        self.assertEqual((data["candidate_A"], data["candidate_B"]), ("y", "x"))
+        self.assertNotIn("display_to_original", ba["messages"][1]["content"])
+        self.assertEqual(ab["allowed_evidence_ids"], IDS)
+        self.assertNotIn("original", ab["messages"][1]["content"])
+
+    def test_strict_parse(self):
+        self.assertEqual(parse_response(json.dumps(judgement()), IDS)["call_status"], "ok")
+        bad = []
+        j = judgement(); j["extra"] = 1; bad.append(j)
+        j = judgement(); j["preference_evidence_ids"] = []; bad.append(j)
+        j = judgement(); j["scores"]["A"]["P"]["score"] = 5; bad.append(j)
+        j = judgement(); j["scores"]["A"]["P"]["score"] = 3.0; bad.append(j)
+        j = judgement(); j["scores"]["A"]["P"]["evidence_ids"] = ["E9"]; bad.append(j)
+        j = judgement(); del j["scores"]["B"]["N"]; bad.append(j)
+        j = judgement(); j["scores"]["A"]["P"]["status"] = "not_applicable"; bad.append(j)
+        j = judgement(); j["protocol"] = "judge-v0.3"; bad.append(j)
+        for item in bad:
+            self.assertEqual(parse_response(json.dumps(item), IDS)["call_status"], "parse_error", item)
+        duplicate = json.dumps(judgement())[:-1] + ', "reason": "again"}'
+        self.assertEqual(parse_response(duplicate, IDS)["call_status"], "parse_error")
+        self.assertEqual(parse_response("```json\n{}\n```", IDS)["call_status"], "parse_error")
+        tie = judgement("tie")
+        self.assertEqual(parse_response(json.dumps(tie), IDS)["call_status"], "ok")
+
+    def test_attribution_protocol(self):
+        req = make_attribution_request(ROW, "……没有。", reverse=True)
+        self.assertEqual(req["card_order"], ["asuka", "rei"])
+        self.assertNotIn('"character"', req["messages"][1]["content"])
+        ok = dict(protocol=ATTR_PROTOCOL, speaker="rei", reason="平淡")
+        self.assertEqual(parse_attribution(json.dumps(ok))["call_status"], "ok")
+        for bad in (dict(ok, speaker="shinji"), dict(ok, extra=1), dict(ok, reason=" ")):
+            self.assertEqual(parse_attribution(json.dumps(bad))["call_status"], "parse_error")
+
+    def test_policy_prompt_carries_only_card_situation_line(self):
+        text = json.dumps(policy_messages(ROW), ensure_ascii=False)
+        self.assertIn(CHARACTERS["rei"]["card"], text)
+        self.assertIn(ROW["line"], text)
+        self.assertNotIn(CHARACTERS["asuka"]["card"], text)
+        self.assertNotIn(ROW["id"], text)
+
+
+class PairOutcomeTests(unittest.TestCase):
+    AB, BA = {"A": "A", "B": "B"}, {"A": "B", "B": "A"}
+
+    def test_mirrored_winners_agree(self):
+        self.assertEqual(pair_outcome(call("A", self.AB), call("B", self.BA)), (1.0, False))
+        self.assertEqual(pair_outcome(call("B", self.AB), call("A", self.BA)), (0.0, False))
+        self.assertEqual(pair_outcome(call("tie", self.AB), call("tie", self.BA)), (0.5, False))
+
+    def test_disagreement_failure_and_insufficient_are_rejected(self):
+        for ab, ba, reason in ((call("A", self.AB), call("A", self.BA), "order_inconsistent"),
+                               (call("A", self.AB, status="parse_error"), call("B", self.BA), "AB parse_error"),
+                               (call("insufficient", self.AB), call("insufficient", self.BA), "insufficient")):
+            with self.assertRaisesRegex(ValueError, reason):
+                pair_outcome(ab, ba)
+
+    def test_off_topic_needs_both_orders(self):
+        self.assertTrue(pair_outcome(call("B", self.AB, r=1), call("A", self.BA, r=0))[1])
+        self.assertFalse(pair_outcome(call("B", self.AB, r=1), call("A", self.BA, r=3))[1])
+
+
+class StyleRewardTests(unittest.TestCase):
+    def reward(self, judge, group=2):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        return StyleReward(judge, Path(tmp.name) / "r", group)
+
+    def test_usable_batch_values_and_reuse(self):
+        judge = ScriptedJudge("A", "B")  # policy wins in both orders
+        reward = self.reward(judge)
+        values = reward(**batch(["……没有带。", "……没有带。", "作为AI我不知道", "……base"]))
+        win = round(0.7 + 0.3 * style_score("……没有带。", "rei"), 6)
+        self.assertEqual(values, [win, win, -1.0, round(0.35 + 0.3 * style_score("……base", "rei"), 6)])
+        self.assertEqual(reward.take_rejected(), [])
+        # Two identical policy replies share one AB and one BA call.
+        self.assertEqual(judge.calls, 2)
+        self.assertEqual(reward.last_metrics["reused_requests"], 2)
+        self.assertEqual(reward.totals["skipped_identical"], 1)
+        with self.assertRaises(RuntimeError):
+            reward.take_rejected()
+
+    def test_order_disagreement_rejects_whole_group_never_zero(self):
+        judge = ScriptedJudge("A", "A")  # winner follows display position: inconsistent
+        reward = self.reward(judge)
+        values = reward(**batch(["……没有带。", "作为AI我不知道", "……base", "……base"]))
+        self.assertEqual(values[:2], [None, None])
+        self.assertEqual(reward.take_rejected(), [0])
+        self.assertEqual(reward.last_metrics["rejection_reasons"], {"order_inconsistent": 1})
+        self.assertNotIn(0, values[:2])
+
+    def test_parse_failure_rejects_group_and_streak_aborts(self):
+        reward = self.reward(ScriptedJudge(fail_on="不知道"))
+        for _ in range(2):
+            reward(**batch(["……不知道。", "……也不知道。"]))
+            self.assertEqual(reward.take_rejected(), [0])
+        with self.assertRaisesRegex(RuntimeError, "consecutive"):
+            reward(**batch(["……不知道。", "……还是不知道。"]))
+
+    def test_batch_must_be_whole_consistent_groups(self):
+        reward = self.reward(ScriptedJudge())
+        with self.assertRaisesRegex(ValueError, "whole groups"):
+            reward(**batch(["……没有带。"] * 3))
+        other = dict(ROW, id="T01-L2-rei")
+        with self.assertRaisesRegex(ValueError, "share one prompt"):
+            reward(**batch(["……没有带。", "……没有。"], rows=[ROW, other]))
+
+    def test_stub_judge_is_order_consistent(self):
+        reward = self.reward(StubJudge())
+        values = reward(**batch(["……没有带。", "哼，笨蛋，我当然带了！"], base="好的，我带了伞，可以借给你。"))
+        self.assertEqual(reward.take_rejected(), [])
+        self.assertGreater(values[0], values[1])
+
+
+@unittest.skipUnless(__import__("importlib").util.find_spec("torch"), "torch not installed")
+class RejectionMaskTests(unittest.TestCase):
+    def test_masks_exactly_the_rejected_group(self):
+        import torch
+        output = dict(completion_mask=torch.ones(6, 3, dtype=torch.long), advantages=torch.arange(6.) + 1)
+        apply_rejection(output, [1], 2)
+        self.assertEqual(output["completion_mask"].sum(dim=1).tolist(), [3, 3, 0, 0, 3, 3])
+        self.assertEqual(output["advantages"].tolist(), [1, 2, 0, 0, 5, 6])
         with self.assertRaises(ValueError):
-            restore([command("submit_action", action="deliver")])
+            apply_rejection(output, [3], 2)
 
-    def test_restore_matches_evaluation_horizon(self):
-        """A training checkpoint must show the same steps_remaining as evaluation."""
-        env = restore([])
-        self.assertEqual(env.observation()["steps_remaining"], env.max_steps)
 
-    def test_reward_adapter_executes_calls_and_audits(self):
+class SuiteTests(unittest.TestCase):
+    def test_frozen_suite_loads_and_splits_by_template(self):
+        train, test = load_suite(SUITE)
+        self.assertEqual((len(train), len(test)), (180, 60))
+        self.assertFalse({r["template"] for r in train} & {r["template"] for r in test})
+        for split in (train, test):
+            self.assertEqual(sum(r["character"] == "rei" for r in split), len(split) // 2)
+
+    def test_suite_is_regenerated_byte_for_byte(self):
+        import scripts.build_style_suite as build
+        train, test, _ = build.build()
         with tempfile.TemporaryDirectory() as tmp:
-            callback = ActionReward(None, Path(tmp) / 'reward', {}, 2)
-            with patch('characore.grpo_rewards.call_judge',
-                       side_effect=[{'final': judged('A')}, {'final': judged('B')}]):
-                values = callback([command('submit_action', action='deliver'),
-                                   command('inspect_clue', clue_id='dispatch')],
-                                  [[], []], [command('query_status')] * 2)
-            self.assertEqual(values, [-1, 1])
-            self.assertTrue((Path(tmp) / 'reward/batch_0001/rewards.json').exists())
-            with patch('characore.grpo_rewards.call_judge',
-                       return_value={'final': dict(call_status='inference_error')}):
-                # Completions must differ from the anchor, or the tie path skips the judge.
-                with self.assertRaises(UnusableReward):
-                    callback([command('inspect_clue', clue_id='dispatch')] * 2, [[], []],
-                             [command('query_status')] * 2)
-            self.assertTrue((Path(tmp) / 'reward/batch_0002/failure.json').exists())
-            with self.assertRaisesRegex(UnusableReward, 'share one'):
-                callback([command('query_status')] * 2,
-                         [[], [command('inspect_clue', clue_id='dispatch')]],
-                         [command('query_status')] * 2)
+            dump(Path(tmp) / "train.json", train)
+            dump(Path(tmp) / "test.json", test)
+            frozen = json.loads((SUITE / "freeze.json").read_text(encoding="utf-8"))
+            self.assertEqual(digest(Path(tmp) / "train.json"), frozen["files"]["train.json"])
+            self.assertEqual(digest(Path(tmp) / "test.json"), frozen["files"]["test.json"])
+            self.assertEqual(frozen["persona_sha256"], persona_identity())
 
-    def test_identical_candidate_scores_tie_without_a_judge_call(self):
-        """Reproducing the anchor must not abort the batch or spend a judge call."""
+    def test_tampered_suite_and_unbound_replies_are_refused(self):
+        train, test = load_suite(SUITE)
         with tempfile.TemporaryDirectory() as tmp:
-            callback = ActionReward(None, Path(tmp) / 'reward', {}, 2)
-            anchor = command('query_status')
-            with patch('characore.grpo_rewards.call_judge',
-                       side_effect=AssertionError("must not call the judge")):
-                values = callback([anchor] * 2, [[], []], [anchor] * 2)
-            expected = REWARD_SPEC["judge_weight"] * REWARD_SPEC["pairwise_values"]["tie"]
-            self.assertEqual(values, [expected] * 2)
+            suite = Path(tmp) / "suite"
+            suite.mkdir()
+            for name in ("train.json", "test.json", "freeze.json"):
+                (suite / name).write_bytes((SUITE / name).read_bytes())
+            replies = Path(tmp) / "base"
+            replies.mkdir()
+            dump(replies / "replies.json", {r["id"]: "……嗯。" for r in train + test})
+            dump(replies / "freeze.json", dict(replies_sha256=digest(replies / "replies.json"),
+                                               suite_freeze_sha256=digest(suite / "freeze.json")))
+            self.assertEqual(len(load_base_replies(replies, suite)), 240)
+            (suite / "train.json").write_bytes((SUITE / "train.json").read_bytes() + b" ")
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                load_suite(suite)
+            (suite / "train.json").write_bytes((SUITE / "train.json").read_bytes())
+            other = Path(tmp) / "other"
+            other.mkdir()
+            dump(other / "replies.json", {"x": "y"})
+            dump(other / "freeze.json", dict(replies_sha256=digest(other / "replies.json"),
+                                             suite_freeze_sha256="0" * 64))
+            with self.assertRaisesRegex(ValueError, "different suite"):
+                load_base_replies(other, suite)
 
 
-class StubJudgeTests(unittest.TestCase):
-    def test_emits_protocol_valid_order_independent_judgements(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            reward = ActionReward(StubJudge(), Path(tmp) / 'reward', read_json(
-                Path(__file__).resolve().parents[1] / 'experiments/agent_v1/evaluation_plan.json')['rubric'], 2)
-            # A legal action against an illegal one must be ranked, not rejected.
-            values = reward([command('inspect_clue', clue_id='dispatch'),
-                             command('submit_action', action='deliver')],
-                            [[], []], [command('query_status')] * 2)
-            self.assertEqual(len(values), 2)
-            self.assertGreater(values[0], values[1])
-
-
-class TrainingGateTests(unittest.TestCase):
-    def make_suite(self, root, scope='development_only'):
-        for split, prefix in [('train', []), ('eval', [command('inspect_clue', clue_id='dispatch')])]:
-            dump(root / f'{split}.json', [dict(id=split, split=split, exposure='development',
-                                               family=TASK_ID, source=TASK_ID, prefix=prefix,
-                                               anchor=command('query_status'))])
-        dump(root / 'freeze.json', dict(task_id=TASK_ID, evaluation_scope=scope,
-             reward_spec_sha256=identity(REWARD_SPEC),
-             files={n: digest(root / n) for n in ('train.json', 'eval.json')}))
-
-    def test_development_is_not_holdout_and_freeze_is_bound(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.make_suite(root)
-            self.assertEqual(len(load_training_suite(root)[0]), 1)
-            path = root / 'freeze.json'
-            obj = read_json(path)
-            obj['evaluation_scope'] = 'independent_holdout'
-            path.write_text(json.dumps(obj), encoding='utf8')
-            with self.assertRaisesRegex(ValueError, 'relabel'):
-                load_training_suite(root)
-            (root / 'train.json').write_text('[]', encoding='utf8')
-            with self.assertRaisesRegex(ValueError, 'changed'):
-                load_training_suite(root)
-
-    def test_reward_spec_change_invalidates_the_suite(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            self.make_suite(root)
-            with patch.dict(REWARD_SPEC, {'judge_weight': .5}):
-                with self.assertRaisesRegex(ValueError, 'reward'):
-                    load_training_suite(root)
-
-    def test_committed_suite_passes_preflight(self):
-        suite = Path(__file__).resolve().parents[1] / 'experiments/agent_v1/suite'
-        train, evaluation = load_training_suite(suite)
-        self.assertTrue(train and evaluation)
-        depths = {len(row['prefix']) for row in evaluation}
-        self.assertGreater(len(depths), 1, "eval split must cover more than one depth")
-
-
-class SamplingSurveyTests(unittest.TestCase):
-    """Model-free: the survey statistics only, on synthetic completions."""
-
-    def test_collapsed_group_and_speech_only_variants_are_separated(self):
-        from scripts.survey_sampling import overall, summarize
-        row = dict(id='synthetic', prefix=[], anchor=command('inspect_clue', clue_id='dispatch'))
-        reworded = json.dumps(dict(speech='先读派单。', tool='inspect_clue',
-                                   arguments=dict(clue_id='dispatch')), ensure_ascii=False)
-        collapsed = summarize(row, [row['anchor']] * 4)
-        self.assertEqual((collapsed['distinct_outputs'], collapsed['distinct_actions']), (1, 1))
-        self.assertEqual(collapsed['anchor_action'], 4)
-        self.assertFalse(collapsed['environment_contrast'])
-        speech_only = summarize(row, [row['anchor'], reworded])
-        self.assertEqual((speech_only['distinct_outputs'], speech_only['distinct_actions']), (2, 1))
-        self.assertFalse(speech_only['environment_contrast'],
-                         "speech-only variants leave the reward to the judge alone")
-        mixed = summarize(row, [row['anchor'], command('query_status'), 'not json'])
-        self.assertEqual(mixed['distinct_actions'], 3)
-        self.assertEqual(mixed['invalid'], 1)
-        self.assertTrue(mixed['environment_contrast'])
-        totals = overall([collapsed, speech_only, mixed])
-        self.assertEqual((totals['one_output'], totals['one_action'], totals['environment_contrast']), (1, 2, 1))
-        self.assertEqual(totals['all_anchor_action'], 2)
-
-    def test_reformatted_anchor_is_counted_as_byte_mismatch(self):
-        from scripts.survey_sampling import summarize
-        row = dict(id='synthetic', prefix=[], anchor=command('inspect_clue', clue_id='dispatch'))
-        compact = json.dumps(json.loads(row['anchor']), ensure_ascii=False, separators=(',', ':'))
-        record = summarize(row, [compact, row['anchor']])
-        self.assertEqual(record['anchor_equivalent_not_bytes'], 1)
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

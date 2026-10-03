@@ -1,4 +1,9 @@
-"""TRL 0.26.2 GRPO/PEFT entry: explicit next-action data, or CPU random-model mechanics."""
+"""TRL 0.26.2 GRPO/PEFT entry: two-character speech style vs frozen base replies, or CPU random-model mechanics.
+
+Single process, single GPU. Rejected groups (judge failure, parse error, AB/BA
+disagreement) are masked out of the update by StyleGRPOTrainer and counted;
+they are never zero-filled.
+"""
 import argparse
 import importlib.metadata
 import json
@@ -16,18 +21,46 @@ os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-from characore.agent import dump, messages
-from characore.grpo_data import load_training_suite
-from characore.grpo_rewards import ActionReward, REWARD_SPEC, restore, transition
-from characore.protocol import digest, read_json
+from characore.persona import render_prompt
+from characore.protocol import digest, dump
 from characore.precision import select_precision
+from characore.style_data import load_base_replies, load_suite
+from characore.style_rewards import REWARD_SPEC
+
+SOURCES = ("scripts/train_grpo.py", "characore/style_rewards.py", "characore/style_trainer.py",
+           "characore/style_data.py", "characore/persona.py", "characore/judge.py")
+
+
+class TinyReward:
+    """Arbitrary token-ID mean: tests sampled rewards, gradients and group masking, NOT task quality.
+
+    Rejects group 0 of the first batch so the masking path runs on every tiny check.
+    """
+    __name__ = "tiny"
+
+    def __init__(self, vocab, output):
+        self.vocab, self.output, self.batches = vocab, output, 0
+        self.pending_rejected, self.last_metrics = None, {}
+
+    def take_rejected(self):
+        rejected, self.pending_rejected = self.pending_rejected, None
+        return rejected
+
+    def __call__(self, prompts, completions, completion_ids, **kwargs):
+        self.batches += 1
+        values = [sum(ids) / max(len(ids), 1) / self.vocab for ids in completion_ids]
+        self.pending_rejected = [0] if self.batches == 1 else []
+        dump(self.output / f"sampled_rewards_{self.batches:03d}.json",
+             dict(completions=completions, token_ids=completion_ids, values=values, rejected=self.pending_rejected))
+        return values
 
 
 def preflight(args):
-    """Validate the frozen suite. Judge reliability is reported, never assumed."""
+    """Validate the frozen suite and base replies. Judge reliability is reported, never assumed."""
     if args.tiny:
         return None
-    return load_training_suite(args.suite)
+    train, test = load_suite(args.suite)
+    return train, test, load_base_replies(args.base_replies, args.suite)
 
 
 def run(args, checked):
@@ -35,77 +68,67 @@ def run(args, checked):
     from datasets import Dataset
     from peft import LoraConfig, PeftModel
     from transformers import set_seed
-    from trl import GRPOConfig, GRPOTrainer
+    from trl import GRPOConfig
     from characore.model_loader import load_model
-    from characore.distributed_rewards import DistributedReward
+    from characore.style_trainer import make_trainer_class
 
     if importlib.metadata.version("trl") != "0.26.2":
         raise ValueError("this adapter is verified against TRL 0.26.2")
     torch.set_num_threads(4)
     set_seed(args.seed)
-    group_size = args.group_size
-    judge_policy = None
-    if not args.tiny:
-        if args.judge_backend == "api":
-            from characore.api_judge import APIJudge
-            judge_policy = APIJudge(args.env_file, allow_calls=args.allow_api)
-        elif args.judge_backend == "stub":
-            from characore.stub_judge import StubJudge
-            judge_policy = StubJudge()
-        else:
-            from characore.local_policy import LocalPolicy
-            judge_policy = LocalPolicy(args.judge_base, device="cpu", max_new_tokens=1024)
-    load_device = f"cuda:{args.local_rank}" if args.device == "cuda" else "cpu"
-    if args.device == "cuda":
-        torch.cuda.set_device(args.local_rank)
+    load_device = "cuda:0" if args.device == "cuda" else "cpu"
     precision = select_precision(load_device, args.precision)
-    model, tokenizer = load_model(args.base, tiny=args.tiny, device=load_device,
-                                  quantize=args.quantize, precision=precision)
+    model, tokenizer = load_model(args.base, tiny=args.tiny, device=load_device, precision=precision)
     model.config.use_cache = True
+    judge = None
     if args.tiny:
         model.save_pretrained(args.output / "tiny_base")
         tokenizer.save_pretrained(args.output / "tiny_base")
         rows = [{"prompt": "medic help patient "}, {"prompt": "guard bridge safe "}]
-        reward_batches = []
-
-        def reward(completions, completion_ids, **kwargs):
-            # Arbitrary token-ID mean tests sampled rewards and gradients, NOT task quality.
-            values = [sum(ids) / max(len(ids), 1) / len(tokenizer) for ids in completion_ids]
-            reward_batches.append(dict(completions=completions, token_ids=completion_ids, values=values))
-            dump(args.output / f"sampled_rewards_{len(reward_batches):03d}.json", reward_batches[-1])
-            return values  # The wrapper validates groups across all ranks.
-
-        targets = ["c_attn", "c_proj"]
-        completion_length = 8
+        reward = TinyReward(len(tokenizer), args.output)
+        targets, completion_length = ["c_attn", "c_proj"], 8
     else:
-        rows = []
-        for row in checked[0]:
-            prompt = tokenizer.apply_chat_template(messages(restore(row["prefix"]).observation()),
-                        tokenize=False, add_generation_prompt=True, enable_thinking=False)
-            if len(tokenizer(prompt, add_special_tokens=False)["input_ids"]) + 192 > model.config.max_position_embeddings:
-                raise ValueError("prompt too long; refusing silent truncation")
-            rows.append(dict(prompt=prompt, prefix=row["prefix"], anchor=row["anchor"]))
-        rubric = read_json(ROOT / "experiments/agent_v1/evaluation_plan.json")["rubric"]
-        reward = ActionReward(judge_policy, args.output / "reward_calls", rubric, group_size, distributed=True)
-        targets, completion_length = ["q_proj", "v_proj"], 192
-    reward = DistributedReward(reward, group_size)
+        from characore.style_rewards import StyleReward
+        if args.judge_backend == "api":
+            from characore.api_judge import APIJudge
+            judge = APIJudge(args.env_file, allow_calls=args.allow_api)
+            needed = args.steps * args.prompts_per_step * args.group_size * 2
+            if judge.max_calls < needed:
+                print(json.dumps(dict(warning="CHARACORE_JUDGE_MAX_CALLS below worst case",
+                                      max_calls=judge.max_calls, worst_case=needed)), flush=True)
+        else:
+            from characore.stub_judge import StubJudge
+            judge = StubJudge()
+        train, _, base_replies = checked
+        completion_length = args.max_new_tokens
+        limit = model.config.max_position_embeddings
+        rows = [dict(prompt=render_prompt(tokenizer, r, completion_length, limit), row_id=r["id"],
+                     character=r["character"], base_reply=base_replies[r["id"]], situation=r["situation"],
+                     speaker=r["speaker"], line=r["line"]) for r in train]
+        reward = StyleReward(judge, args.output / "reward", args.group_size, workers=args.judge_workers)
+        targets = ["q_proj", "k_proj", "v_proj", "o_proj"]
+    generation_batch = args.prompts_per_step * args.group_size
+    if generation_batch % args.micro_batch:
+        raise ValueError("prompts_per_step * group_size must be divisible by micro_batch")
+    # One generation batch per optimizer step: steps_per_generation == gradient_accumulation_steps.
     cfg = GRPOConfig(output_dir=str(args.output / "trainer"), max_steps=args.steps,
-                     per_device_train_batch_size=1, gradient_accumulation_steps=group_size,
-                     generation_batch_size=group_size * args.world_size,
-                     num_generations=group_size, max_completion_length=completion_length,
-                     learning_rate=5e-4 if args.tiny else 5e-5, beta=.04, loss_type="grpo",
+                     per_device_train_batch_size=args.micro_batch,
+                     gradient_accumulation_steps=generation_batch // args.micro_batch,
+                     generation_batch_size=generation_batch,
+                     num_generations=args.group_size, max_completion_length=completion_length,
+                     learning_rate=5e-4 if args.tiny else args.learning_rate, beta=.04, loss_type="grpo",
                      scale_rewards="group", temperature=1.0, top_p=1.0, top_k=0,
                      logging_steps=1, save_strategy="no", eval_strategy="no", report_to="none",
                      seed=args.seed, data_seed=args.seed, use_cpu=args.device == "cpu",
                      bf16=precision == "bf16", fp16=precision == "fp16", gradient_checkpointing=not args.tiny,
-                     ddp_find_unused_parameters=False,
                      gradient_checkpointing_kwargs={"use_reentrant": False},
                      dataloader_pin_memory=False, remove_unused_columns=False, disable_tqdm=True,
                      mask_truncated_completions=False, use_vllm=False)
-    trainer = GRPOTrainer(model=model, reward_funcs=reward, args=cfg,
-                          train_dataset=Dataset.from_list(rows), processing_class=tokenizer,
-                          peft_config=LoraConfig(r=4, lora_alpha=8, lora_dropout=0.0,
-                                                target_modules=targets, task_type="CAUSAL_LM"))
+    trainer = make_trainer_class()(model=model, reward_funcs=reward, args=cfg, style_reward=reward,
+                                   train_dataset=Dataset.from_list(rows), processing_class=tokenizer,
+                                   peft_config=LoraConfig(r=args.lora_rank, lora_alpha=2 * args.lora_rank,
+                                                          lora_dropout=0.0, target_modules=targets,
+                                                          task_type="CAUSAL_LM"))
     policy = trainer.model
     trainables = {n: p for n, p in policy.named_parameters() if p.requires_grad}
     if not trainables or any("lora_" not in n for n in trainables):
@@ -131,45 +154,30 @@ def run(args, checked):
     initial = logits()
     with policy.disable_adapter():
         ref_before = logits()
-
-    def evaluate_actions(label):
-        if args.tiny:
-            return
-        outcomes = []
-        policy.eval()
-        for row in checked[1]:
-            visible = messages(restore(row["prefix"]).observation())
-            prompt = tokenizer.apply_chat_template(visible, tokenize=False, add_generation_prompt=True,
-                                                    enable_thinking=False)
-            inputs = tokenizer(prompt, return_tensors="pt", add_special_tokens=False).to(policy.device)
-            if inputs["input_ids"].shape[1] + completion_length > model.config.max_position_embeddings:
-                raise ValueError("evaluation context exceeds model budget")
-            with torch.no_grad():
-                output = policy.generate(**inputs, do_sample=False, max_new_tokens=completion_length,
-                                         pad_token_id=tokenizer.pad_token_id)
-            raw = tokenizer.decode(output[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True)
-            _, result, progress = transition(row["prefix"], raw)
-            outcomes.append(dict(id=row["id"], visible_input=visible, output=raw, transition=result, progress=progress))
-        dump(args.output / f"{label}_development_eval.json", dict(scope="development_only_not_blind",
-                                                                 outcomes=outcomes))
-
-    dump(args.output / "manifest.json", dict(framework="TRL GRPOTrainer + PEFT", trl="0.26.2",
-         source_sha256={p: digest(ROOT / p) for p in ("scripts/train_grpo.py", "characore/grpo_rewards.py", "characore/grpo_data.py", "characore/agent.py")},
-         tiny=args.tiny, claim="software mechanics only" if args.tiny else "development next-action GRPO, not full-episode GRPO or held-out improvement",
-         rank=args.rank, world_size=args.world_size, device=load_device, precision=precision,
-         suite_sha256=None if args.tiny else digest(args.suite / "freeze.json"),
-         judge_backend=None if args.tiny else args.judge_backend,
-         judge_reliability="uncalibrated: no human agreement measured for this task",
-         judge_metadata=None if args.tiny else judge_policy.metadata,
-         base_files_sha256={p.name: digest(p) for p in sorted((args.output / "tiny_base" if args.tiny else Path(args.base)).iterdir()) if p.is_file()},
-         seed=args.seed, group_size=group_size, steps=args.steps, config=cfg.to_dict(), reward_spec=REWARD_SPEC if not args.tiny else "synthetic token-ID mean",
-         packages={p: importlib.metadata.version(p) for p in ("torch", "transformers", "trl", "peft", "accelerate")}))
-    evaluate_actions("before")
-    result = trainer.train()
+    dump(args.output / "manifest.json", dict(
+        framework="TRL GRPOTrainer + PEFT, StyleGRPOTrainer group rejection", trl="0.26.2",
+        source_sha256={p: digest(ROOT / p) for p in SOURCES},
+        tiny=args.tiny, claim="software mechanics only" if args.tiny else "speech-style GRPO vs frozen base replies",
+        device=load_device, precision=precision,
+        suite_sha256=None if args.tiny else digest(args.suite / "freeze.json"),
+        base_replies_sha256=None if args.tiny else digest(args.base_replies / "freeze.json"),
+        judge_backend=None if args.tiny else args.judge_backend,
+        judge_reliability="uncalibrated: no human agreement measured for this task",
+        judge_metadata=judge.metadata if judge else None,
+        base_files_sha256={p.name: digest(p) for p in sorted((args.output / "tiny_base" if args.tiny else Path(args.base)).iterdir()) if p.is_file()},
+        seed=args.seed, group_size=args.group_size, prompts_per_step=args.prompts_per_step, steps=args.steps,
+        config=cfg.to_dict(), reward_spec=REWARD_SPEC if not args.tiny else "synthetic token-ID mean",
+        packages={p: importlib.metadata.version(p) for p in ("torch", "transformers", "trl", "peft", "accelerate")}))
+    try:
+        result = trainer.train()
+    finally:
+        if not args.tiny:
+            # Curves and counts survive an aborted run too.
+            dump(args.output / "reward_totals.json", dict(reward.totals, rejected_by_trainer=trainer.rejected_total))
+        dump(args.output / "log_history.json", trainer.state.log_history)
     for hook in hooks:
         hook.remove()
     trained = logits()
-    evaluate_actions("after")
     with policy.disable_adapter():
         ref_after = logits()
     changed = sum(not torch.equal(before[n], p.detach().cpu()) for n, p in trainables.items())
@@ -177,14 +185,6 @@ def run(args, checked):
         raise AssertionError("no finite nonzero gradient/update evidence")
     if not torch.equal(ref_before, ref_after):
         raise AssertionError("frozen reference changed")
-    if torch.distributed.is_initialized():
-        import hashlib
-        signature = hashlib.sha256(b"".join(p.detach().cpu().float().contiguous().numpy().tobytes()
-                                            for p in trainables.values())).hexdigest()
-        signatures = [None] * args.world_size
-        torch.distributed.all_gather_object(signatures, signature)
-        if len(set(signatures)) != 1:
-            raise AssertionError("DDP adapter parameters differ across ranks")
     policy.save_pretrained(args.output / "adapter")
     tokenizer.save_pretrained(args.output / "adapter")
     policy = PeftModel.from_pretrained(policy.unload(), args.output / "adapter", is_trainable=False)
@@ -192,13 +192,14 @@ def run(args, checked):
     if not torch.allclose(trained, restored, atol=1e-5, rtol=1e-5):
         raise AssertionError("adapter save/reload mismatch")
     proof = dict(software_mechanism_only=args.tiny, optimizer_steps=trainer.state.global_step,
-                 rank=args.rank, world_size=args.world_size,
-                 ddp_adapter_parameters_equal=True if args.world_size > 1 else None,
+                 ddp_adapter_parameters_equal="not_applicable_single_process",
                  changed_tensors=changed, gradients=grads, reference_logits_unchanged=True,
-                 probe_logit_max_delta=(trained-initial).abs().max().item(),
-                 reload_logit_max_error=(restored-trained).abs().max().item(),
+                 probe_logit_max_delta=(trained - initial).abs().max().item(),
+                 reload_logit_max_error=(restored - trained).abs().max().item(),
+                 rejected_groups=trainer.rejected_total,
+                 reward_totals=None if args.tiny else reward.totals,
                  adapter_sha256=digest(args.output / "adapter/adapter_model.safetensors"),
-                 metrics=result.metrics, history=trainer.state.log_history)
+                 metrics=result.metrics)
     dump(args.output / "verification.json", proof)
     print(json.dumps(proof, ensure_ascii=False))
 
@@ -209,14 +210,19 @@ def main():
     parser.add_argument("--tiny", action="store_true")
     parser.add_argument("--preflight-only", action="store_true")
     parser.add_argument("--base")
-    parser.add_argument("--judge-base")
-    parser.add_argument("--judge-backend", choices=("local", "api", "stub"), default="api")
+    parser.add_argument("--suite", type=Path)
+    parser.add_argument("--base-replies", type=Path)
+    parser.add_argument("--judge-backend", choices=("api", "stub"), default="api")
+    parser.add_argument("--judge-workers", type=int, default=8)
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--allow-api", action="store_true")
-    parser.add_argument("--suite", type=Path)
-    parser.add_argument("--group-size", type=int, default=4)
+    parser.add_argument("--group-size", type=int, default=8)
+    parser.add_argument("--prompts-per-step", type=int, default=2)
+    parser.add_argument("--micro-batch", type=int, default=4)
+    parser.add_argument("--max-new-tokens", type=int, default=64)
+    parser.add_argument("--learning-rate", type=float, default=5e-5)
+    parser.add_argument("--lora-rank", type=int, default=8)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
-    parser.add_argument("--quantize", action="store_true")
     parser.add_argument("--precision", choices=("auto", "fp16", "bf16", "fp32"), default="auto")
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--seed", type=int, default=17)
@@ -225,39 +231,23 @@ def main():
         parser.error("steps must be positive")
     if args.group_size < 2:
         parser.error("GRPO needs at least two samples per group")
-    if args.tiny and (args.device != "cpu" or args.quantize or args.allow_api or any((args.base, args.judge_base, args.suite))):
-        parser.error("tiny mode is CPU-only random model; cannot mix real inputs")
-    if not args.tiny and not all((args.base, args.suite)):
-        parser.error("real mode requires --base and --suite")
-    if not args.tiny and args.judge_backend == "local" and not args.judge_base:
-        parser.error("local judge requires --judge-base")
+    if args.tiny:
+        if args.device != "cpu" or args.allow_api or any((args.base, args.suite, args.base_replies)):
+            parser.error("tiny mode is CPU-only random model; cannot mix real inputs")
+        args.group_size, args.prompts_per_step, args.micro_batch = 2, 2, 1
+    elif not all((args.base, args.suite, args.base_replies)):
+        parser.error("real mode requires --base, --suite and --base-replies")
     if not args.tiny and args.judge_backend == "api" and not args.allow_api and not args.preflight_only:
         parser.error("API reward training requires --allow-api")
-    args.world_size = int(os.environ.get("WORLD_SIZE", "1"))
-    args.rank = int(os.environ.get("RANK", "0"))
-    args.local_rank = int(os.environ.get("LOCAL_RANK", "0"))
-    if args.world_size > 1 and args.quantize:
-        parser.error("multi-process 4-bit path is not verified; use FP16 LoRA")
-    if args.world_size > 1:
-        from accelerate import PartialState
-        distributed = PartialState(cpu=args.device == "cpu")
-        creation_error = [None]
-        if args.rank == 0:
-            try:
-                args.output.mkdir(parents=True, exist_ok=False)
-            except Exception as exc:
-                creation_error[0] = type(exc).__name__
-        import torch.distributed as dist
-        dist.broadcast_object_list(creation_error, src=0)
-        if creation_error[0]:
-            raise ValueError("new shared output directory required; creation failed")
-        args.output = args.output / f"rank_{args.rank:04d}"
+    if int(os.environ.get("WORLD_SIZE", "1")) != 1:
+        parser.error("single process only: group rejection is not verified under DDP")
     args.output.mkdir(parents=True, exist_ok=False)
-    dump(args.output / "invocation.json", {k: str(v) if isinstance(v, Path) else v for k,v in vars(args).items()})
+    dump(args.output / "invocation.json", {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()})
     try:
         checked = preflight(args)
         if args.preflight_only:
-            dump(args.output / "preflight.json", dict(passed=True, training_started=False, tiny=args.tiny))
+            dump(args.output / "preflight.json", dict(passed=True, training_started=False, tiny=args.tiny,
+                                                      train_rows=None if args.tiny else len(checked[0])))
         else:
             run(args, checked)
     except Exception:

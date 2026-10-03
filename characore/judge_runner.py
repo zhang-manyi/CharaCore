@@ -1,10 +1,10 @@
-"""Local, immutable judge calls using the existing v0.3 request/response contract."""
+"""Local, immutable judge calls: request, every attempt and the result are written once."""
 import hashlib
 import json
 from pathlib import Path
 
-from characore.agent import dump
 from characore.judge import parse_response
+from characore.protocol import dump
 
 
 def identity(value):
@@ -24,14 +24,14 @@ def judge_identity(metadata):
     return identity({k: metadata[k] for k in keys})
 
 
-def call_judge(request, policy, output, retries=1, input_limit=4096):
+def call_judge(request, policy, output, retries=1, input_limit=4096, parse=parse_response):
     if type(retries) is not int or not 0 <= retries <= 1 or input_limit < 1:
         raise ValueError("at most one retry and a positive input budget required")
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     dump(output / "request.json", request)
     attempts = []
-    required = json.loads(request["messages"][1]["content"])["action_required"]
+    required = json.loads(request["messages"][1]["content"]).get("action_required", False)
     for number in range(retries + 1):
         try:
             if hasattr(policy, "check_input"):
@@ -45,7 +45,7 @@ def call_judge(request, policy, output, retries=1, input_limit=4096):
             raw, usage = policy(request["messages"])
             if hasattr(policy, "redact"):
                 raw = policy.redact(raw)
-            result = parse_response(raw, request["allowed_evidence_ids"], required)
+            result = parse(raw, request["allowed_evidence_ids"], required)
             if policy.metadata.get("kind") == "remote_judge_api" and usage.get("finish_reason") not in ("completed", "stop"):
                 result = dict(call_status="incomplete_response", judgement=None, raw=raw,
                               error="API response did not finish normally")

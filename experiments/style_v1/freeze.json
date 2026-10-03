@@ -1,0 +1,22 @@
+{
+  "files": {
+    "train.json": "a022d4bd57cef2908e39fbc91bb8e46dd8b27e26d55bcd8bf70c4e5167a09e98",
+    "test.json": "809df325701d70eb5f6993b0b73f90364fe51a20358abf1f1bd952698f475b83"
+  },
+  "persona_sha256": "3432d9c9bef562e33fefd0246d4059a8cddb6859063630fa42083627dd87c6cf",
+  "split": "by_template",
+  "seed": 17,
+  "test_templates": [
+    "T06",
+    "T10",
+    "T12",
+    "T14",
+    "T17",
+    "T22"
+  ],
+  "rows": {
+    "train": 180,
+    "test": 60
+  },
+  "source": "original situations written for this project; no dialogue from the original work"
+}

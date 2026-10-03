@@ -1,0 +1,482 @@
+[
+  {
+    "id": "T06-L1-rei",
+    "template": "T06",
+    "character": "rei",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你醒了？伤口还疼吗？"
+  },
+  {
+    "id": "T06-L1-asuka",
+    "template": "T06",
+    "character": "asuka",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你醒了？伤口还疼吗？"
+  },
+  {
+    "id": "T06-L2-rei",
+    "template": "T06",
+    "character": "rei",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我带了些水果来。"
+  },
+  {
+    "id": "T06-L2-asuka",
+    "template": "T06",
+    "character": "asuka",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "我带了些水果来。"
+  },
+  {
+    "id": "T06-L3-rei",
+    "template": "T06",
+    "character": "rei",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "医生说你要住一周。"
+  },
+  {
+    "id": "T06-L3-asuka",
+    "template": "T06",
+    "character": "asuka",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "医生说你要住一周。"
+  },
+  {
+    "id": "T06-L4-rei",
+    "template": "T06",
+    "character": "rei",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "那时候你为什么要挡在我前面？"
+  },
+  {
+    "id": "T06-L4-asuka",
+    "template": "T06",
+    "character": "asuka",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "那时候你为什么要挡在我前面？"
+  },
+  {
+    "id": "T06-L5-rei",
+    "template": "T06",
+    "character": "rei",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "需要我帮你拿什么吗？"
+  },
+  {
+    "id": "T06-L5-asuka",
+    "template": "T06",
+    "character": "asuka",
+    "situation": "战斗结束后，你躺在医院的病床上，有人来探望。",
+    "speaker": "同队的少年驾驶员",
+    "line": "需要我帮你拿什么吗？"
+  },
+  {
+    "id": "T10-L1-rei",
+    "template": "T10",
+    "character": "rei",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "生日快乐。"
+  },
+  {
+    "id": "T10-L1-asuka",
+    "template": "T10",
+    "character": "asuka",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "生日快乐。"
+  },
+  {
+    "id": "T10-L2-rei",
+    "template": "T10",
+    "character": "rei",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "不知道你喜欢什么，就随便挑了一个。"
+  },
+  {
+    "id": "T10-L2-asuka",
+    "template": "T10",
+    "character": "asuka",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "不知道你喜欢什么，就随便挑了一个。"
+  },
+  {
+    "id": "T10-L3-rei",
+    "template": "T10",
+    "character": "rei",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "打开看看吧。"
+  },
+  {
+    "id": "T10-L3-asuka",
+    "template": "T10",
+    "character": "asuka",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "打开看看吧。"
+  },
+  {
+    "id": "T10-L4-rei",
+    "template": "T10",
+    "character": "rei",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "不喜欢的话我可以去换。"
+  },
+  {
+    "id": "T10-L4-asuka",
+    "template": "T10",
+    "character": "asuka",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "不喜欢的话我可以去换。"
+  },
+  {
+    "id": "T10-L5-rei",
+    "template": "T10",
+    "character": "rei",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你以前怎么过生日？"
+  },
+  {
+    "id": "T10-L5-asuka",
+    "template": "T10",
+    "character": "asuka",
+    "situation": "生日那天，有人把一个小盒子放在你桌上。",
+    "speaker": "同队的少年驾驶员",
+    "line": "你以前怎么过生日？"
+  },
+  {
+    "id": "T12-L1-rei",
+    "template": "T12",
+    "character": "rei",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "今天的检查要花很长时间。"
+  },
+  {
+    "id": "T12-L1-asuka",
+    "template": "T12",
+    "character": "asuka",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "今天的检查要花很长时间。"
+  },
+  {
+    "id": "T12-L2-rei",
+    "template": "T12",
+    "character": "rei",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "你好像总是一个人等在这里。"
+  },
+  {
+    "id": "T12-L2-asuka",
+    "template": "T12",
+    "character": "asuka",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "你好像总是一个人等在这里。"
+  },
+  {
+    "id": "T12-L3-rei",
+    "template": "T12",
+    "character": "rei",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "要喝点热的吗？"
+  },
+  {
+    "id": "T12-L3-asuka",
+    "template": "T12",
+    "character": "asuka",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "要喝点热的吗？"
+  },
+  {
+    "id": "T12-L4-rei",
+    "template": "T12",
+    "character": "rei",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "检查的时候会有点冷。"
+  },
+  {
+    "id": "T12-L4-asuka",
+    "template": "T12",
+    "character": "asuka",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "检查的时候会有点冷。"
+  },
+  {
+    "id": "T12-L5-rei",
+    "template": "T12",
+    "character": "rei",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "你对这些检查有什么想法？"
+  },
+  {
+    "id": "T12-L5-asuka",
+    "template": "T12",
+    "character": "asuka",
+    "situation": "你在实验室外的长椅上等待，有人走过来搭话。",
+    "speaker": "研究所的研究员",
+    "line": "你对这些检查有什么想法？"
+  },
+  {
+    "id": "T14-L1-rei",
+    "template": "T14",
+    "character": "rei",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "你的字写得好工整。"
+  },
+  {
+    "id": "T14-L1-asuka",
+    "template": "T14",
+    "character": "asuka",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "你的字写得好工整。"
+  },
+  {
+    "id": "T14-L2-rei",
+    "template": "T14",
+    "character": "rei",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "这道题你是怎么做出来的？"
+  },
+  {
+    "id": "T14-L2-asuka",
+    "template": "T14",
+    "character": "asuka",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "这道题你是怎么做出来的？"
+  },
+  {
+    "id": "T14-L3-rei",
+    "template": "T14",
+    "character": "rei",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "能借我抄一下吗？"
+  },
+  {
+    "id": "T14-L3-asuka",
+    "template": "T14",
+    "character": "asuka",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "能借我抄一下吗？"
+  },
+  {
+    "id": "T14-L4-rei",
+    "template": "T14",
+    "character": "rei",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "你连附加题都做了啊。"
+  },
+  {
+    "id": "T14-L4-asuka",
+    "template": "T14",
+    "character": "asuka",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "你连附加题都做了啊。"
+  },
+  {
+    "id": "T14-L5-rei",
+    "template": "T14",
+    "character": "rei",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "教教我好不好？"
+  },
+  {
+    "id": "T14-L5-asuka",
+    "template": "T14",
+    "character": "asuka",
+    "situation": "教室里，你的作业本被同学捡起来看了一眼。",
+    "speaker": "同班同学",
+    "line": "教教我好不好？"
+  },
+  {
+    "id": "T17-L1-rei",
+    "template": "T17",
+    "character": "rei",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "今天放你一天假。"
+  },
+  {
+    "id": "T17-L1-asuka",
+    "template": "T17",
+    "character": "asuka",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "今天放你一天假。"
+  },
+  {
+    "id": "T17-L2-rei",
+    "template": "T17",
+    "character": "rei",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "想去哪里都可以。"
+  },
+  {
+    "id": "T17-L2-asuka",
+    "template": "T17",
+    "character": "asuka",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "想去哪里都可以。"
+  },
+  {
+    "id": "T17-L3-rei",
+    "template": "T17",
+    "character": "rei",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "别总是待在宿舍里。"
+  },
+  {
+    "id": "T17-L3-asuka",
+    "template": "T17",
+    "character": "asuka",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "别总是待在宿舍里。"
+  },
+  {
+    "id": "T17-L4-rei",
+    "template": "T17",
+    "character": "rei",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "要不要和大家一起去吃饭？"
+  },
+  {
+    "id": "T17-L4-asuka",
+    "template": "T17",
+    "character": "asuka",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "要不要和大家一起去吃饭？"
+  },
+  {
+    "id": "T17-L5-rei",
+    "template": "T17",
+    "character": "rei",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "明天早上照常集合。"
+  },
+  {
+    "id": "T17-L5-asuka",
+    "template": "T17",
+    "character": "asuka",
+    "situation": "你被告知训练计划临时取消，可以自由活动一天。",
+    "speaker": "作战指挥官",
+    "line": "明天早上照常集合。"
+  },
+  {
+    "id": "T22-L1-rei",
+    "template": "T22",
+    "character": "rei",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "刚才的失误差点害了整个小队。"
+  },
+  {
+    "id": "T22-L1-asuka",
+    "template": "T22",
+    "character": "asuka",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "刚才的失误差点害了整个小队。"
+  },
+  {
+    "id": "T22-L2-rei",
+    "template": "T22",
+    "character": "rei",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "你知道自己错在哪里吗？"
+  },
+  {
+    "id": "T22-L2-asuka",
+    "template": "T22",
+    "character": "asuka",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "你知道自己错在哪里吗？"
+  },
+  {
+    "id": "T22-L3-rei",
+    "template": "T22",
+    "character": "rei",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "写一份报告给我。"
+  },
+  {
+    "id": "T22-L3-asuka",
+    "template": "T22",
+    "character": "asuka",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "写一份报告给我。"
+  },
+  {
+    "id": "T22-L4-rei",
+    "template": "T22",
+    "character": "rei",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "这不像你平时的水平。"
+  },
+  {
+    "id": "T22-L4-asuka",
+    "template": "T22",
+    "character": "asuka",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "这不像你平时的水平。"
+  },
+  {
+    "id": "T22-L5-rei",
+    "template": "T22",
+    "character": "rei",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "我不是在怪你。"
+  },
+  {
+    "id": "T22-L5-asuka",
+    "template": "T22",
+    "character": "asuka",
+    "situation": "一次失误之后，你在走廊里被叫住。",
+    "speaker": "作战指挥官",
+    "line": "我不是在怪你。"
+  }
+]
