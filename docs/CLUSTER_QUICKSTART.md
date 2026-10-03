@@ -71,7 +71,7 @@ python scripts/check_judge_order.py --suite experiments/style_v1 --base-replies 
 CUDA_VISIBLE_DEVICES=0 python scripts/survey_sampling.py --base $CHARACORE_POLICY_MODEL --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --output runs/survey_01 --judge-backend api --allow-api --judge-rows 20
 ```
 
-最多 320 次调用。`summary.json` 的 `gate.passed` 为 true 再训练；否则把 `varied_share`、`win_rate_vs_base`、`hard_rate` 发给我调整。
+最多 320 次调用。`summary.json` 的 `gate.passed` 为 true 再训练；否则看 `varied_share`、`rejected_share`、`win_rate_vs_base`、`judged.order_inconsistent_rate`、`hard_rate` 再调整。
 
 ## 7. 桩裁判跑通训练路径，再真实训练
 

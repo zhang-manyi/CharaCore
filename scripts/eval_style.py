@@ -75,16 +75,19 @@ def win_rate(rows, replies, base, pairs):
             records.append(dict(id=row["id"], status="identical", score=0.5))
         else:
             try:
-                score, off_topic = pair_outcome(calls[keyed[row["id"]]["AB"]], calls[keyed[row["id"]]["BA"]])
-                records.append(dict(id=row["id"], status="ok", score=score, off_topic=off_topic))
+                score, off_topic, inconsistent = pair_outcome(calls[keyed[row["id"]]["AB"]],
+                                                              calls[keyed[row["id"]]["BA"]])
+                records.append(dict(id=row["id"], status="ok", score=score, off_topic=off_topic,
+                                    order_inconsistent=inconsistent))
             except ValueError as exc:
                 records.append(dict(id=row["id"], status="unusable", reason=str(exc)))
     scored = [r for r in records if r["status"] != "unusable"]
     return dict(cases=len(records), scored=len(scored),
-                # A hard violation counts as a loss to base; identical replies count as ties.
+                # A hard violation counts as a loss to base; identical replies and AB/BA disagreement as ties.
                 win_rate=sum(r["score"] for r in scored) / len(scored) if scored else None,
                 wins=sum(r["score"] == 1.0 for r in scored), ties=sum(r["score"] == 0.5 for r in scored),
                 losses=sum(r["score"] == 0.0 for r in scored),
+                order_inconsistent=sum(bool(r.get("order_inconsistent")) for r in scored),
                 unusable=len(records) - len(scored), records=records)
 
 

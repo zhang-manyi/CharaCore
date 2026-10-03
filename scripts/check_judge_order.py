@@ -46,7 +46,10 @@ def probe(row, candidates, judge, output):
                   **{f"{k}_winner": winner(v) for k, v in calls.items()},
                   repeat_agrees=winner(calls["AB"]) == winner(calls["AB_repeat"]))
     try:
-        pairwise, off_topic = pair_outcome(calls["AB"], calls["BA"])
+        pairwise, off_topic, inconsistent = pair_outcome(calls["AB"], calls["BA"])
+        if inconsistent:
+            # Training scores this pair as a tie; for an order check it is the failure being measured.
+            raise ValueError("order_inconsistent")
         record.update(status="usable", own_base_score=pairwise, off_topic=off_topic)
     except ValueError as exc:
         # The exact reason training would have rejected a group containing this pair.

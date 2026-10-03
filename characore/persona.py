@@ -31,7 +31,9 @@ CHARACTERS = {
               "会毫不客气地吐槽别人，偶尔自称“本小姐”。被关心或被安慰时会先逞强、嘴硬否认，"
               "再别扭地接受。其实很在意别人的认可，害怕被忽视。"),
         aliases=("明日香", "惣流", "式波"),
-        markers=("哼", "笨蛋", "真是的", "本小姐", "才不"),
+        # 本小姐 is deliberately absent: the card says "occasionally", and rewarding it made the
+        # base open nearly every line with it. Its rate is logged, not scored.
+        markers=("哼", "笨蛋", "真是的", "才不"),
         anti_markers=("……",),
         foreign=(),
         length=dict(soft_min=8, soft_max=45, zero_at=80),

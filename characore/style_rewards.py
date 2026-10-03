@@ -7,11 +7,14 @@ Per sample:
   otherwise                           -> AB/BA judge calls against the base reply
   reward = 0.7 * pairwise + 0.3 * style_score - 0.5 * off_topic
 
-pairwise is 1 / 0.5 / 0 for policy win / tie / base win, and counts only when
-both orders agree. off_topic means both orders scored the policy reply's R <= 1.
+pairwise is 1 / 0.5 / 0 for policy win / tie / base win when both orders agree.
+When the two orders disagree the verdict followed display position, not the
+replies, so the pair is scored as a tie (0.5) and flagged order_inconsistent;
+the rate is logged so a policy that learns to look ambiguous shows up.
+off_topic means both orders scored the policy reply's R <= 1.
 
-A group that contains any unusable sample (judge failure, parse error, order
-disagreement, insufficient) is rejected as a whole: every member returns None,
+A group that contains any unusable sample (judge failure, parse error,
+insufficient) is rejected as a whole: every member returns None,
 so TRL's nansum gives the group all-zero rewards and zero advantages, and the
 trainer additionally zeroes its completion_mask. A partial None would be summed
 as 0 and silently corrupt the group's mean and std, so it is never returned.
@@ -31,13 +34,15 @@ MARKER_CAP, MARKER_TOTAL_CAP = 2, 4
 OOC = ("作为AI", "作为一个AI", "作为人工智能", "人工智能", "语言模型", "AI助手", "我是AI",
        "扮演", "角色设定", "设定中", "这个角色", "台词：", "旁白")
 WEIGHTS = dict(pairwise=0.7, style=0.3, off_topic=0.5)
-REWARD_SPEC = dict(name="style-pairwise-v1", judge_protocol=PROTOCOL, length=LENGTH,
+REWARD_SPEC = dict(name="style-pairwise-v2", judge_protocol=PROTOCOL, length=LENGTH,
                    marker_cap=MARKER_CAP, marker_total_cap=MARKER_TOTAL_CAP, ooc=OOC,
                    ellipsis="'...' and '…' runs count as '……' for markers only; reply text is unchanged",
                    weights=WEIGHTS, hard_penalty=-1.0,
-                   rejection="any unusable sample rejects its whole group; never zero-filled")
+                   order_inconsistent="AB/BA disagreement scores as a tie (0.5) and is counted",
+                   rejection="call failure, parse error or insufficient rejects the whole group; never zero-filled")
 EMPTY_THINK = re.compile(r"^\s*<think>\s*</think>\s*")
 ELLIPSIS = re.compile(r"\.{3,}|…+")
+SELF_TITLE = "本小姐"
 
 
 def clean_reply(raw):
@@ -94,7 +99,10 @@ def rule_metrics(replies, characters):
     for h in hard:
         if h:
             reasons[h] = reasons.get(h, 0) + 1
+    # The card says Asuka only occasionally calls herself 本小姐; the base opens 97% of her lines with it.
+    asuka = [r for r, c in zip(replies, characters) if c == "asuka"]
     return dict(samples=n, hard_violation_rate=sum(h is not None for h in hard) / n if n else None,
+                asuka_benxiaojie_open_rate=sum(r.startswith(SELF_TITLE) for r in asuka) / len(asuka) if asuka else None,
                 hard_reasons=reasons,
                 style_score_mean=sum(style_score(r, c) for r, c in zip(replies, characters)) / n if n else None,
                 length_mean=sum(len(r) for r in replies) / n if n else None,
@@ -112,7 +120,10 @@ def _original(final, mapping):
 
 
 def pair_outcome(ab, ba):
-    """Combine AB and BA results. Returns (pairwise, off_topic) or raises ValueError with the reason."""
+    """Combine AB and BA results into (pairwise, off_topic, order_inconsistent).
+
+    Raises ValueError with the reason when a call failed or either order said insufficient.
+    """
     for label, call in (("AB", ab), ("BA", ba)):
         if call["final"]["call_status"] != "ok":
             raise ValueError(f"{label} {call['final']['call_status']}")
@@ -120,11 +131,11 @@ def pair_outcome(ab, ba):
     second, r_second = _original(ba["final"], ba["mapping"])
     if "insufficient" in (first, second):
         raise ValueError("insufficient")
-    if first != second:
-        raise ValueError("order_inconsistent")
-    pairwise = {"A": 1.0, "tie": 0.5, "B": 0.0}[first]
+    inconsistent = first != second
+    # Disagreeing orders mean the verdict tracked display position: the judge cannot separate the pair.
+    pairwise = 0.5 if inconsistent else {"A": 1.0, "tie": 0.5, "B": 0.0}[first]
     off_topic = r_first is not None and r_second is not None and r_first <= 1 and r_second <= 1
-    return pairwise, off_topic
+    return pairwise, off_topic, inconsistent
 
 
 class PairJudge:
@@ -172,7 +183,7 @@ class StyleReward:
         self.pending_rejected = None
         self.last_metrics = None
         self.totals = dict(batches=0, groups=0, rejected_groups=0, judge_calls=0, reused_requests=0,
-                           skipped_identical=0, hard=0)
+                           skipped_identical=0, hard=0, order_inconsistent=0)
 
     def take_rejected(self):
         """Group indices rejected in the latest call. The trainer must consume exactly one per batch."""
@@ -221,7 +232,9 @@ class StyleReward:
                     self.totals["skipped_identical"] += 1
                 else:
                     try:
-                        s["pairwise"], s["off_topic"] = pair_outcome(calls[s["keys"]["AB"]], calls[s["keys"]["BA"]])
+                        s["pairwise"], s["off_topic"], s["order_inconsistent"] = pair_outcome(
+                            calls[s["keys"]["AB"]], calls[s["keys"]["BA"]])
+                        self.totals["order_inconsistent"] += s["order_inconsistent"]
                     except ValueError as exc:
                         s["unusable"] = str(exc)
                         error = error or str(exc)
@@ -239,11 +252,15 @@ class StyleReward:
         self.totals["batches"] += 1
         self.totals["groups"] += groups
         self.totals["rejected_groups"] += len(rejected)
-        judged = [s["pairwise"] for s in samples if s.get("pairwise") is not None and "keys" in s]
+        compared = [s for s in samples if s.get("pairwise") is not None and "keys" in s]
+        judged = [s["pairwise"] for s in compared]
+        inconsistent = sum(s["order_inconsistent"] for s in compared)
         metrics = rule_metrics(replies, character)
         metrics.update(groups=groups, rejected_groups=len(rejected), rejection_reasons=reasons,
                        judge_calls=len(calls), reused_requests=wanted - len(pending),
                        win_rate_vs_base=sum(judged) / len(judged) if judged else None,
+                       order_inconsistent=inconsistent,
+                       order_inconsistent_rate=inconsistent / len(compared) if compared else None,
                        off_topic=sum(bool(s.get("off_topic")) for s in samples),
                        varied_groups=sum(len({v for v in values[s:s + g]}) > 1
                                          for k, s in enumerate(range(0, n, g)) if k not in rejected))

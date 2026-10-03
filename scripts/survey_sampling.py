@@ -8,8 +8,9 @@ with --judge-backend stub|api it scores --judge-rows rows through the real
 StyleReward, so its rejection and reuse counts match training.
 
 Gate (written to summary.json, decision left to the operator):
-  at least 60% of judged groups have non-identical rewards, and
-  the starting win rate vs base lies in [0.1, 0.9].
+  at least 60% of usable groups have non-identical rewards,
+  the starting win rate vs base lies in [0.1, 0.9], and
+  at most 20% of groups are rejected.
 """
 import argparse
 import json
@@ -24,7 +25,9 @@ from characore.protocol import dump
 from characore.style_data import load_base_replies, load_suite
 from characore.style_rewards import clean_reply, hard_violation, style_score
 
-GATE = dict(min_varied_share=0.6, win_rate_range=(0.1, 0.9))
+# max_rejected_share: varied_share and the win rate only see usable groups, so without it a survey
+# that rejected most groups still passed (survey_style_01: 13/20 rejected, gate passed).
+GATE = dict(min_varied_share=0.6, win_rate_range=(0.1, 0.9), max_rejected_share=0.2)
 
 
 def summarize(row, raws):
@@ -50,10 +53,12 @@ def overall(records, judged=None):
     if judged:
         usable = judged["groups"] - judged["rejected_groups"]
         varied_share = judged["varied_groups"] / usable if usable else None
+        rejected_share = judged["rejected_groups"] / judged["groups"] if judged["groups"] else None
         win = judged["win_rate_vs_base"]
-        out.update(judged=judged, varied_share=varied_share,
+        out.update(judged=judged, varied_share=varied_share, rejected_share=rejected_share,
                    gate=dict(GATE, passed=varied_share is not None and varied_share >= GATE["min_varied_share"]
-                             and win is not None and GATE["win_rate_range"][0] <= win <= GATE["win_rate_range"][1]))
+                             and win is not None and GATE["win_rate_range"][0] <= win <= GATE["win_rate_range"][1]
+                             and rejected_share is not None and rejected_share <= GATE["max_rejected_share"]))
     return out
 
 

@@ -1,6 +1,6 @@
 {
   "replies_sha256": "0e33fa3554180dcfc96b24188d51943d767b11b195575ec4199929e9d2dc0c23",
-  "suite_freeze_sha256": "647ac9fb050de5c9ca6ac0931b5f5c72e8652af0a8e9f8f72f13f2ab3443ddae",
+  "suite_freeze_sha256": "4732e978cb125445ba576a6f6b6e635abb22143bf1df3ec42ec64fd4a8faddd9",
   "base": "/home/zhangmy/models/Qwen3-4B",
   "base_files_sha256": {
     "config.json": "8ba006f74fecfaaeb392872a60f4a480e7ec9860153d2e1b769ec81f9a147f8a",
@@ -102,5 +102,9 @@
   "packages": {
     "torch": "2.5.1+cu121",
     "transformers": "4.57.3"
+  },
+  "rebound": {
+    "reason": "Asuka marker list dropped 本小姐; replies unchanged (the policy prompt carries the card, not the marker list)",
+    "previous_suite_freeze_sha256": "647ac9fb050de5c9ca6ac0931b5f5c72e8652af0a8e9f8f72f13f2ab3443ddae"
   }
 }

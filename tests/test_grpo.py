@@ -101,6 +101,13 @@ class RuleTests(unittest.TestCase):
         m = rule_metrics(["……没有带。", "作为AI我不知道"], ["rei", "rei"])
         self.assertEqual(m["hard_violation_rate"], 0.5)
         self.assertEqual(m["hard_reasons"], {"out_of_character": 1})
+        self.assertIsNone(m["asuka_benxiaojie_open_rate"])
+
+    def test_benxiaojie_is_logged_not_scored(self):
+        # Same length, so only the self-title differs.
+        self.assertEqual(style_score("本小姐当然带了伞。", "asuka"), style_score("我今天当然带了伞。", "asuka"))
+        m = rule_metrics(["本小姐带了。", "哼，带了。", "……嗯。"], ["asuka", "asuka", "rei"])
+        self.assertEqual(m["asuka_benxiaojie_open_rate"], 0.5)
 
 
 class JudgeProtocolTests(unittest.TestCase):
@@ -153,13 +160,17 @@ class PairOutcomeTests(unittest.TestCase):
     AB, BA = {"A": "A", "B": "B"}, {"A": "B", "B": "A"}
 
     def test_mirrored_winners_agree(self):
-        self.assertEqual(pair_outcome(call("A", self.AB), call("B", self.BA)), (1.0, False))
-        self.assertEqual(pair_outcome(call("B", self.AB), call("A", self.BA)), (0.0, False))
-        self.assertEqual(pair_outcome(call("tie", self.AB), call("tie", self.BA)), (0.5, False))
+        self.assertEqual(pair_outcome(call("A", self.AB), call("B", self.BA)), (1.0, False, False))
+        self.assertEqual(pair_outcome(call("B", self.AB), call("A", self.BA)), (0.0, False, False))
+        self.assertEqual(pair_outcome(call("tie", self.AB), call("tie", self.BA)), (0.5, False, False))
 
-    def test_disagreement_failure_and_insufficient_are_rejected(self):
-        for ab, ba, reason in ((call("A", self.AB), call("A", self.BA), "order_inconsistent"),
-                               (call("A", self.AB, status="parse_error"), call("B", self.BA), "AB parse_error"),
+    def test_order_disagreement_is_a_flagged_tie(self):
+        # Position-following (A, A) and a tie in one order only both mean the judge cannot separate the pair.
+        for ab, ba in ((call("A", self.AB), call("A", self.BA)), (call("tie", self.AB), call("B", self.BA))):
+            self.assertEqual(pair_outcome(ab, ba), (0.5, False, True))
+
+    def test_failure_and_insufficient_are_rejected(self):
+        for ab, ba, reason in ((call("A", self.AB, status="parse_error"), call("B", self.BA), "AB parse_error"),
                                (call("insufficient", self.AB), call("insufficient", self.BA), "insufficient")):
             with self.assertRaisesRegex(ValueError, reason):
                 pair_outcome(ab, ba)
@@ -189,14 +200,22 @@ class StyleRewardTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             reward.take_rejected()
 
-    def test_order_disagreement_rejects_whole_group_never_zero(self):
+    def test_order_disagreement_scores_tie_and_is_counted(self):
         judge = ScriptedJudge("A", "A")  # winner follows display position: inconsistent
         reward = self.reward(judge)
+        values = reward(**batch(["……没有带。", "作为AI我不知道"]))
+        self.assertEqual(values, [round(0.35 + 0.3 * style_score("……没有带。", "rei"), 6), -1.0])
+        self.assertEqual(reward.take_rejected(), [])
+        self.assertEqual(reward.last_metrics["order_inconsistent"], 1)
+        self.assertEqual(reward.last_metrics["order_inconsistent_rate"], 1.0)
+        self.assertEqual(reward.totals["order_inconsistent"], 1)
+
+    def test_insufficient_rejects_whole_group_never_zero(self):
+        reward = self.reward(ScriptedJudge("insufficient", "insufficient"))
         values = reward(**batch(["……没有带。", "作为AI我不知道", "……base", "……base"]))
         self.assertEqual(values[:2], [None, None])
         self.assertEqual(reward.take_rejected(), [0])
-        self.assertEqual(reward.last_metrics["rejection_reasons"], {"order_inconsistent": 1})
-        self.assertNotIn(0, values[:2])
+        self.assertEqual(reward.last_metrics["rejection_reasons"], {"insufficient": 1})
 
     def test_parse_failure_rejects_group_and_streak_aborts(self):
         reward = self.reward(ScriptedJudge(fail_on="不知道"))
