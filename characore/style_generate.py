@@ -24,7 +24,9 @@ def generate(model, tokenizer, rows, max_new_tokens, batch_size=8, generation=No
         inputs = tokenizer(prompts, return_tensors="pt", padding=True, add_special_tokens=False).to(model.device)
         width = inputs["input_ids"].shape[1]  # left padding: every completion starts here
         with torch.inference_mode():
-            ids = model.generate(**inputs, generation_config=generation)
+            # use_model_defaults=False: otherwise transformers >= 4.50 replaces every field equal to the
+            # global default (do_sample=False, temperature=1.0, top_p=1.0) with the checkpoint's sampling values.
+            ids = model.generate(**inputs, generation_config=generation, use_model_defaults=False)
         for k, row in enumerate(chunk):
             out[row["id"]] = [tokenizer.decode(ids[k * per_row + j, width:], skip_special_tokens=True)
                               for j in range(per_row)]

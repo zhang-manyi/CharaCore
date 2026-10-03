@@ -61,7 +61,9 @@ def main():
         suite_freeze_sha256=digest(args.suite / "freeze.json"),
         base=str(args.base), base_files_sha256={p.name: digest(p) for p in sorted(Path(args.base).iterdir())
                                                 if p.is_file() and p.suffix in (".json", ".safetensors")},
-        decoding=dict(do_sample=False, max_new_tokens=args.max_new_tokens, enable_thinking=False),
+        decoding=dict(do_sample=False, max_new_tokens=args.max_new_tokens, enable_thinking=False,
+                      use_model_defaults=False),
+        checkpoint_generation_config=model.generation_config.to_dict(),
         device=device, precision=precision, rows=len(replies), base_hard_violations=hard,
         packages={p: importlib.metadata.version(p) for p in ("torch", "transformers")}))
     load_base_replies(args.output, args.suite)
