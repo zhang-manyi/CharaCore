@@ -153,9 +153,9 @@ class JudgeProtocolTests(unittest.TestCase):
         j["scores"]["preference_evidence_ids"] = j.pop("preference_evidence_ids")
         self.assertEqual(parse_response(json.dumps(j), IDS)["error"], "Unexpected judge fields")
 
-    def test_prompt_asks_for_scores_last(self):
+    def test_prompt_asks_for_analysis_before_winner_and_scores_last(self):
         system = make_request(ROW, {"A": "……嗯。", "B": "……不。"})["messages"][0]["content"]
-        self.assertIn("protocol, winner, reason, preference_evidence_ids, scores", system)
+        self.assertIn("protocol, reason, winner, preference_evidence_ids, scores", system)
         self.assertIn(f'protocol 填 "{PROTOCOL}"', system)
 
     def test_attribution_protocol(self):
