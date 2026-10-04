@@ -40,7 +40,7 @@ CHARACORE_JUDGE_API_STYLE=chat_completions
 CHARACORE_JUDGE_MAX_CALLS=5000
 ```
 
-`MAX_CALLS` 按进程计；最坏情况每步 `prompts_per_step × group_size × 2` 次（默认 2×8×2=32，150 步约 4800 次），同批复用、硬违规与逐字节相同不发起调用，实际更少。
+`MAX_CALLS` 按进程计；每步最多 `prompts_per_step × group_size × 2` 次比较（默认 2×8×2=32，150 步约 4800 次），同批复用、硬违规与逐字节相同不发起调用，实际更少。调用或解析失败重试 1 次，重试也计入预算；按 survey_style_02 约 3% 的失败率，额外开销在百次以内。
 
 ```bash
 python scripts/check_judge_api.py
@@ -71,7 +71,7 @@ python scripts/check_judge_order.py --suite experiments/style_v1 --base-replies 
 CUDA_VISIBLE_DEVICES=0 python scripts/survey_sampling.py --base $CHARACORE_POLICY_MODEL --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --output runs/survey_01 --judge-backend api --allow-api --judge-rows 20
 ```
 
-最多 320 次调用。`summary.json` 的 `gate.passed` 为 true 再训练；否则看 `varied_share`、`rejected_share`、`win_rate_vs_base`、`judged.order_inconsistent_rate`、`hard_rate` 再调整。
+最多 320 次比较（失败重试另计）。`summary.json` 的 `gate.passed` 为 true 再训练；否则看 `varied_share`、`rejected_share`、`win_rate_vs_base`、`judged.order_inconsistent_rate`、`hard_rate` 再调整。
 
 ## 7. 桩裁判跑通训练路径，再真实训练
 

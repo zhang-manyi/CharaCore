@@ -55,6 +55,16 @@ class ScriptedJudge:
         return json.dumps(judgement(self.ab if first_is_policy else self.ba)), dict(finish_reason="stop")
 
 
+class FlakyJudge(ScriptedJudge):
+    """Policy wins in both orders, but the very first call returns unparseable output."""
+
+    def __call__(self, messages):
+        if self.calls == 0:
+            self.calls += 1
+            return "not json", dict(finish_reason="stop")
+        return super().__call__(messages)
+
+
 def batch(replies, rows=None, group=2, base="……base"):
     rows = rows or [ROW] * len(replies)
     pick = lambda k: [r[k] for r in rows]
@@ -138,6 +148,15 @@ class JudgeProtocolTests(unittest.TestCase):
         self.assertEqual(parse_response("```json\n{}\n```", IDS)["call_status"], "parse_error")
         tie = judgement("tie")
         self.assertEqual(parse_response(json.dumps(tie), IDS)["call_status"], "ok")
+        # survey_style_02: a dropped brace nested reason and preference_evidence_ids inside scores.
+        j = judgement(); j["scores"]["reason"] = j.pop("reason")
+        j["scores"]["preference_evidence_ids"] = j.pop("preference_evidence_ids")
+        self.assertEqual(parse_response(json.dumps(j), IDS)["error"], "Unexpected judge fields")
+
+    def test_prompt_asks_for_scores_last(self):
+        system = make_request(ROW, {"A": "……嗯。", "B": "……不。"})["messages"][0]["content"]
+        self.assertIn("protocol, winner, reason, preference_evidence_ids, scores", system)
+        self.assertIn(f'protocol 填 "{PROTOCOL}"', system)
 
     def test_attribution_protocol(self):
         req = make_attribution_request(ROW, "……没有。", reverse=True)
@@ -224,6 +243,14 @@ class StyleRewardTests(unittest.TestCase):
             self.assertEqual(reward.take_rejected(), [0])
         with self.assertRaisesRegex(RuntimeError, "consecutive"):
             reward(**batch(["……不知道。", "……还是不知道。"]))
+
+    def test_single_parse_failure_is_retried_once(self):
+        judge = FlakyJudge()
+        reward = self.reward(judge)
+        values = reward(**batch(["……没有带。", "作为AI我不知道"]))
+        self.assertEqual(reward.take_rejected(), [])
+        self.assertEqual(values[0], round(0.7 + 0.3 * style_score("……没有带。", "rei"), 6))
+        self.assertEqual(judge.calls, 3)  # AB, BA, and one retry of the first call
 
     def test_batch_must_be_whole_consistent_groups(self):
         reward = self.reward(ScriptedJudge())

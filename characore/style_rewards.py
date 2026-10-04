@@ -34,11 +34,12 @@ MARKER_CAP, MARKER_TOTAL_CAP = 2, 4
 OOC = ("作为AI", "作为一个AI", "作为人工智能", "人工智能", "语言模型", "AI助手", "我是AI",
        "扮演", "角色设定", "设定中", "这个角色", "台词：", "旁白")
 WEIGHTS = dict(pairwise=0.7, style=0.3, off_topic=0.5)
-REWARD_SPEC = dict(name="style-pairwise-v2", judge_protocol=PROTOCOL, length=LENGTH,
+REWARD_SPEC = dict(name="style-pairwise-v3", judge_protocol=PROTOCOL, length=LENGTH,
                    marker_cap=MARKER_CAP, marker_total_cap=MARKER_TOTAL_CAP, ooc=OOC,
                    ellipsis="'...' and '…' runs count as '……' for markers only; reply text is unchanged",
                    weights=WEIGHTS, hard_penalty=-1.0,
                    order_inconsistent="AB/BA disagreement scores as a tie (0.5) and is counted",
+                   judge_retries="one retry on call failure or parse error; every attempt recorded",
                    rejection="call failure, parse error or insufficient rejects the whole group; never zero-filled")
 EMPTY_THINK = re.compile(r"^\s*<think>\s*</think>\s*")
 ELLIPSIS = re.compile(r"\.{3,}|…+")
@@ -141,7 +142,9 @@ def pair_outcome(ab, ba):
 class PairJudge:
     """AB/BA judge calls with in-batch reuse of byte-identical requests."""
 
-    def __init__(self, judge, output, workers=8, retries=0):
+    # One retry on call failure or parse error: survey_style_02 lost 5 of 20 groups to single format
+    # slips. Both attempts are recorded. Order disagreement is not a failure and is never retried.
+    def __init__(self, judge, output, workers=8, retries=1):
         self.judge, self.output, self.workers, self.retries = judge, Path(output), workers, retries
         self.output.mkdir(parents=True, exist_ok=False)
         self.batches = 0
