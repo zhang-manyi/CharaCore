@@ -1,8 +1,11 @@
 """Small HTTPS Responses/Chat Completions adapter. No network until an explicit call."""
+import http.client
 import json
 import os
 from pathlib import Path
 import re
+import threading
+import time
 from urllib import error, parse, request
 
 from characore.protocol import digest
@@ -11,6 +14,17 @@ ROOT = Path(__file__).resolve().parents[1]
 PREFIX = "CHARACORE_JUDGE_"
 FIELDS = {"BASE_URL", "API_KEY", "MODEL", "MAX_TOKENS", "TIMEOUT_SECONDS",
           "MAX_CALLS", "MAX_INPUT_BYTES", "JSON_MODE", "API_STYLE"}
+# Waits before retrying a transient transport failure (timeout, dropped connection, HTTP 408/429/5xx),
+# about 8 minutes in total: grpo_style_03 aborted after three batches of HTTP 429. Every attempt counts
+# toward MAX_CALLS. Other HTTP errors and malformed responses are never retried here.
+BACKOFF = (15, 30, 60, 120, 240)
+TRANSIENT_STATUS = {408, 429}
+
+
+def transient(exc):
+    if isinstance(exc, error.HTTPError):
+        return exc.code in TRANSIENT_STATUS or exc.code >= 500
+    return isinstance(exc, (error.URLError, TimeoutError, ConnectionError, http.client.HTTPException))
 
 
 def settings(env_file=None):
@@ -56,7 +70,7 @@ class APIResponseError(RuntimeError):
 
 
 class APIJudge:
-    def __init__(self, env_file=None, allow_calls=False):
+    def __init__(self, env_file=None, allow_calls=False, backoff=BACKOFF):
         values = settings(env_file)
         def required(key):
             value = values.get(PREFIX + key, "")
@@ -76,6 +90,8 @@ class APIJudge:
         self.model = required("MODEL")
         self.allow_calls = allow_calls
         self.calls = 0
+        self.backoff = tuple(backoff)
+        self._lock = threading.Lock()  # reward workers share one budget
         def integer(key, default, maximum):
             try:
                 value = int(values.get(PREFIX + key, str(default)))
@@ -96,7 +112,7 @@ class APIJudge:
                              decoding="provider defaults; no temperature override", max_output_tokens=self.max_tokens, json_mode=self.json_mode,
                              adapter_sha256=digest(__file__))
         self.budget = dict(max_calls_per_process=self.max_calls, timeout_seconds=self.timeout,
-                           max_input_bytes=self.input_limit)
+                           max_input_bytes=self.input_limit, transient_retry_waits=self.backoff)
 
     def redact(self, text):
         return text.replace(self._key, "[REDACTED]")
@@ -111,8 +127,9 @@ class APIJudge:
         if not self.allow_calls:
             raise ValueError("API disabled; explicitly pass --allow-api to send judge material")
         self.check_input(messages)
-        if self.calls >= self.max_calls:
-            raise ValueError("API request budget exhausted")
+        with self._lock:
+            if self.calls >= self.max_calls:
+                raise ValueError("API request budget exhausted")
         if self.api_style == "responses":
             payload = dict(model=self.model, input=messages, max_output_tokens=self.max_tokens,
                            stream=False, store=False)
@@ -128,11 +145,9 @@ class APIJudge:
                                        "Authorization": "Bearer " + self._key,
                                        "User-Agent": "CharaCore-judge/0.1"},
                               method="POST")
-        self.calls += 1
+        body, number, transport_failures = self._send(req)
         body_text = None
         try:
-            with request.build_opener(NoRedirect()).open(req, timeout=self.timeout) as response:
-                body = response.read(4_000_001)
             if len(body) > 4_000_000:
                 raise ValueError("API response exceeded size budget")
             body_text = self.redact(body.decode("utf-8"))
@@ -150,13 +165,35 @@ class APIJudge:
             return raw, dict(provider_response=data, provider_response_text=body_text,
                              usage=data.get("usage"), response_model=data.get("model"),
                              finish_reason=finish,
-                             request_number=self.calls)
-        except error.HTTPError as exc:
-            # Keep a redacted body for diagnosing API protocol errors, never request headers.
-            try:
-                safe_body = self.redact(exc.read(65536).decode("utf-8", errors="replace"))
-            except Exception:
-                safe_body = None
-            raise APIResponseError(f"judge API HTTP {exc.code}; check saved response", safe_body) from None
+                             request_number=number, transport_failures=transport_failures)
         except Exception as exc:
             raise APIResponseError(f"judge API failure ({type(exc).__name__}); no response accepted", body_text) from None
+
+    def _send(self, req):
+        """POST with backoff on transient failures. Returns (body, request number, failures before it)."""
+        failures = []
+        for attempt in range(len(self.backoff) + 1):
+            with self._lock:
+                if self.calls >= self.max_calls:
+                    raise APIResponseError(f"API request budget exhausted after {len(failures)} transient failures: "
+                                           f"{[f['error'] for f in failures]}")
+                self.calls += 1
+                number = self.calls
+            try:
+                with request.build_opener(NoRedirect()).open(req, timeout=self.timeout) as response:
+                    return response.read(4_000_001), number, failures
+            except error.HTTPError as exc:
+                # Keep a redacted body for diagnosing API protocol errors, never request headers.
+                try:
+                    safe_body = self.redact(exc.read(65536).decode("utf-8", errors="replace"))
+                except Exception:
+                    safe_body = None
+                failure, retry, final = f"HTTP {exc.code}", transient(exc), APIResponseError(
+                    f"judge API HTTP {exc.code} after {attempt + 1} attempts; check saved response", safe_body)
+            except Exception as exc:
+                failure, retry, final = type(exc).__name__, transient(exc), APIResponseError(
+                    f"judge API failure ({type(exc).__name__}) after {attempt + 1} attempts; no response accepted")
+            if not retry or attempt == len(self.backoff):
+                raise final from None
+            failures.append(dict(request_number=number, error=failure, wait_seconds=self.backoff[attempt]))
+            time.sleep(self.backoff[attempt])

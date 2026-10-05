@@ -144,10 +144,11 @@ class PairJudge:
 
     # One retry on call failure or parse error: survey_style_02 lost 5 of 20 groups to single format
     # slips. Both attempts are recorded. Order disagreement is not a failure and is never retried.
-    def __init__(self, judge, output, workers=8, retries=1):
+    def __init__(self, judge, output, workers=8, retries=1, resume=False):
         self.judge, self.output, self.workers, self.retries = judge, Path(output), workers, retries
-        self.output.mkdir(parents=True, exist_ok=False)
-        self.batches = 0
+        self.output.mkdir(parents=True, exist_ok=resume)
+        # A resumed run continues numbering past every batch already on disk; nothing is overwritten.
+        self.batches = max((int(p.name.split("_")[1]) for p in self.output.glob("batch_*")), default=0)
 
     def requests(self, row, reply, base):
         out = {}
@@ -176,9 +177,9 @@ class PairJudge:
 class StyleReward:
     """TRL reward function. Single process: the batch holds whole consecutive groups of G."""
 
-    def __init__(self, judge, output, group_size, workers=8, max_all_rejected=3):
+    def __init__(self, judge, output, group_size, workers=8, max_all_rejected=3, resume=False):
         self.__name__ = "style"  # TRL names the reward column after this
-        self.pairs = PairJudge(judge, Path(output) / "calls", workers)
+        self.pairs = PairJudge(judge, Path(output) / "calls", workers, resume=resume)
         self.output = Path(output)
         self.group_size = group_size
         self.max_all_rejected = max_all_rejected
@@ -187,6 +188,21 @@ class StyleReward:
         self.last_metrics = None
         self.totals = dict(batches=0, groups=0, rejected_groups=0, judge_calls=0, reused_requests=0,
                            skipped_identical=0, hard=0, order_inconsistent=0)
+        # rewards_{serial}.json numbering; equals totals["batches"] unless the run was resumed.
+        self.serial = max((int(p.stem.split("_")[1]) for p in self.output.glob("rewards_*.json")), default=0)
+
+    def state(self):
+        """Counters a checkpoint carries so that a resumed run continues them."""
+        return dict(totals=dict(self.totals), all_rejected_streak=self.all_rejected_streak, serial=self.serial)
+
+    def restore(self, state):
+        """Continue from a checkpoint's counters (None: no checkpoint, start from zero). Batches scored
+        after that checkpoint were never part of a saved update; their files stay on disk and are
+        returned as superseded."""
+        state = state or dict(totals={k: 0 for k in self.totals}, all_rejected_streak=0, serial=0)
+        self.totals = dict(state["totals"])
+        self.all_rejected_streak = state["all_rejected_streak"]
+        return list(range(state["serial"] + 1, self.serial + 1))
 
     def take_rejected(self):
         """Group indices rejected in the latest call. The trainer must consume exactly one per batch."""
@@ -268,7 +284,8 @@ class StyleReward:
                        varied_groups=sum(len({v for v in values[s:s + g]}) > 1
                                          for k, s in enumerate(range(0, n, g)) if k not in rejected))
         self.last_metrics = metrics
-        dump(self.output / f"rewards_{self.totals['batches']:05d}.json",
+        self.serial += 1
+        dump(self.output / f"rewards_{self.serial:05d}.json",
              dict(metrics=metrics, rejected_groups=rejected, samples=samples, values=values))
         self.pending_rejected = rejected
         self.all_rejected_streak = self.all_rejected_streak + 1 if len(rejected) == groups else 0

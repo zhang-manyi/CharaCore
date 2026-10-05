@@ -1,8 +1,13 @@
 """TRL 0.26.2 GRPO/PEFT entry: two-character speech style vs frozen base replies, or CPU random-model mechanics.
 
-Single process, single GPU. Rejected groups (judge failure, parse error, AB/BA
-disagreement) are masked out of the update by StyleGRPOTrainer and counted;
+Single process, single GPU. Rejected groups (judge failure, parse error,
+insufficient) are masked out of the update by StyleGRPOTrainer and counted;
 they are never zero-filled.
+
+Real runs checkpoint every --save-steps steps (LoRA, optimizer, scheduler, RNG,
+trainer state, reward counters). --resume continues an interrupted run in the
+same --output from its latest complete checkpoint, after checking that code,
+data, base weights, judge and hyperparameters match the original manifest.
 """
 import argparse
 import importlib.metadata
@@ -22,7 +27,7 @@ os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 from characore.persona import render_prompt
-from characore.protocol import digest, dump
+from characore.protocol import digest, dump, read_json
 from characore.precision import select_precision
 from characore.style_data import load_base_replies, load_suite
 from characore.style_rewards import REWARD_SPEC
@@ -55,6 +60,28 @@ class TinyReward:
         return values
 
 
+STATE_FILE = "style_reward.json"
+# A resumed run must train the same thing: same code, data, base weights and judge.
+RESUME_BINDING = ("source_sha256", "suite_sha256", "base_replies_sha256", "judge_backend", "judge_metadata",
+                  "base_files_sha256", "precision", "reward_spec", "seed", "group_size", "prompts_per_step",
+                  "steps", "hyperparameters", "packages")
+
+
+def comparable(manifest, key):
+    """Judge model, decoding and adapter code are bound; the endpoint may move to another provider route."""
+    value = manifest.get(key)
+    if key == "judge_metadata" and isinstance(value, dict):
+        value = {k: v for k, v in value.items() if k != "endpoint"}
+    return value
+
+
+def last_checkpoint(trainer_dir):
+    """Latest checkpoint whose reward state was written. on_save runs after the checkpoint itself, so a
+    checkpoint without it was cut off mid-save and is skipped."""
+    done = [p for p in Path(trainer_dir).glob("checkpoint-*") if (p / STATE_FILE).is_file()]
+    return max(done, key=lambda p: int(p.name.split("-")[1]), default=None)
+
+
 def preflight(args):
     """Validate the frozen suite and base replies. Judge reliability is reported, never assumed."""
     if args.tiny:
@@ -63,11 +90,12 @@ def preflight(args):
     return train, test, load_base_replies(args.base_replies, args.suite)
 
 
-def run(args, checked):
+def run(args, checked, session):
+    """session is where this process's records go: the run directory, or resume_NN/ when resuming."""
     import torch
     from datasets import Dataset
     from peft import LoraConfig, PeftModel
-    from transformers import set_seed
+    from transformers import TrainerCallback, set_seed
     from trl import GRPOConfig
     from characore.model_loader import load_model
     from characore.style_trainer import make_trainer_class
@@ -105,7 +133,8 @@ def run(args, checked):
         rows = [dict(prompt=render_prompt(tokenizer, r, completion_length, limit), row_id=r["id"],
                      character=r["character"], base_reply=base_replies[r["id"]], situation=r["situation"],
                      speaker=r["speaker"], line=r["line"]) for r in train]
-        reward = StyleReward(judge, args.output / "reward", args.group_size, workers=args.judge_workers)
+        reward = StyleReward(judge, args.output / "reward", args.group_size, workers=args.judge_workers,
+                             resume=args.resume)
         targets = ["q_proj", "k_proj", "v_proj", "o_proj"]
     generation_batch = args.prompts_per_step * args.group_size
     if generation_batch % args.micro_batch:
@@ -118,7 +147,8 @@ def run(args, checked):
                      num_generations=args.group_size, max_completion_length=completion_length,
                      learning_rate=5e-4 if args.tiny else args.learning_rate, beta=.04, loss_type="grpo",
                      scale_rewards="group", temperature=1.0, top_p=1.0, top_k=0,
-                     logging_steps=1, save_strategy="no", eval_strategy="no", report_to="none",
+                     logging_steps=1, save_strategy="no" if args.tiny else "steps", save_steps=args.save_steps,
+                     save_total_limit=2, eval_strategy="no", report_to="none",
                      seed=args.seed, data_seed=args.seed, use_cpu=args.device == "cpu",
                      bf16=precision == "bf16", fp16=precision == "fp16", gradient_checkpointing=not args.tiny,
                      gradient_checkpointing_kwargs={"use_reentrant": False},
@@ -135,6 +165,26 @@ def run(args, checked):
         raise AssertionError("expected LoRA-only updates")
     before = {n: p.detach().cpu().clone() for n, p in trainables.items()}
     grads = dict(calls=0, nonzero=0, finite=True)
+    checkpoint, superseded = None, []
+    if not args.tiny:
+        class SaveRewardState(TrainerCallback):
+            def on_save(self, cfg_, state, control, **kwargs):
+                dump(Path(cfg_.output_dir) / f"checkpoint-{state.global_step}" / STATE_FILE,
+                     dict(reward.state(), global_step=state.global_step, rejected_by_trainer=trainer.rejected_total))
+
+        trainer.add_callback(SaveRewardState())
+        if args.resume:
+            checkpoint = last_checkpoint(args.output / "trainer")
+            saved = read_json(checkpoint / STATE_FILE) if checkpoint else None
+            superseded = reward.restore(saved)
+            trainer.rejected_total = saved["rejected_by_trainer"] if saved else 0
+            dump(session / "resume.json", dict(
+                checkpoint=str(checkpoint) if checkpoint else None,
+                global_step=saved["global_step"] if saved else 0,
+                superseded_reward_files=[f"rewards_{n:05d}.json" for n in superseded],
+                note="superseded batches were scored after the last checkpoint and never entered a saved update"))
+            print(json.dumps(dict(resume_from=str(checkpoint) if checkpoint else "start (no complete checkpoint)",
+                                  superseded_batches=len(superseded))), flush=True)
 
     def observe(g):
         grads["calls"] += 1
@@ -151,10 +201,12 @@ def run(args, checked):
         with torch.no_grad(), amp:
             return policy(**probe).logits.detach().float().cpu()
 
+    # On resume these are still the fresh seeded LoRA (B = 0, so the base model's logits); the checkpoint's
+    # weights load inside train(), so "changed" and "differs from initial" compare against the true start.
     initial = logits()
     with policy.disable_adapter():
         ref_before = logits()
-    dump(args.output / "manifest.json", dict(
+    manifest = dict(
         framework="TRL GRPOTrainer + PEFT, StyleGRPOTrainer group rejection", trl="0.26.2",
         source_sha256={p: digest(ROOT / p) for p in SOURCES},
         tiny=args.tiny, claim="software mechanics only" if args.tiny else "speech-style GRPO vs frozen base replies",
@@ -166,22 +218,35 @@ def run(args, checked):
         judge_metadata=judge.metadata if judge else None,
         base_files_sha256={p.name: digest(p) for p in sorted((args.output / "tiny_base" if args.tiny else Path(args.base)).iterdir()) if p.is_file()},
         seed=args.seed, group_size=args.group_size, prompts_per_step=args.prompts_per_step, steps=args.steps,
+        hyperparameters=dict(learning_rate=args.learning_rate, lora_rank=args.lora_rank, micro_batch=args.micro_batch,
+                             max_new_tokens=args.max_new_tokens),
         config=cfg.to_dict(), reward_spec=REWARD_SPEC if not args.tiny else "synthetic token-ID mean",
-        packages={p: importlib.metadata.version(p) for p in ("torch", "transformers", "trl", "peft", "accelerate")}))
+        packages={p: importlib.metadata.version(p) for p in ("torch", "transformers", "trl", "peft", "accelerate")})
+    manifest = json.loads(json.dumps(manifest, default=str))
+    if args.resume:
+        original = read_json(args.output / "manifest.json")
+        drift = [k for k in RESUME_BINDING if comparable(original, k) != comparable(manifest, k)]
+        if drift:
+            raise ValueError(f"cannot resume: {drift} differ from the original run's manifest")
+    dump(session / "manifest.json", manifest)
+    start_step = int(checkpoint.name.split("-")[1]) if checkpoint else 0
     try:
-        result = trainer.train()
+        result = trainer.train(resume_from_checkpoint=str(checkpoint) if checkpoint else None)
     finally:
         if not args.tiny:
             # Curves and counts survive an aborted run too.
-            dump(args.output / "reward_totals.json", dict(reward.totals, rejected_by_trainer=trainer.rejected_total))
-        dump(args.output / "log_history.json", trainer.state.log_history)
+            dump(session / "reward_totals.json", dict(reward.totals, rejected_by_trainer=trainer.rejected_total))
+        # state.log_history is restored from the checkpoint, so a resumed run's file covers every step from 1.
+        dump(session / "log_history.json", trainer.state.log_history)
     for hook in hooks:
         hook.remove()
     trained = logits()
     with policy.disable_adapter():
         ref_after = logits()
     changed = sum(not torch.equal(before[n], p.detach().cpu()) for n, p in trainables.items())
-    if not changed or not grads["finite"] or not grads["nonzero"] or torch.equal(initial, trained):
+    # Resuming from the final checkpoint (cut off during verification) runs no step, so no gradients.
+    stepped = trainer.state.global_step > start_step
+    if not changed or not grads["finite"] or (stepped and not grads["nonzero"]) or torch.equal(initial, trained):
         raise AssertionError("no finite nonzero gradient/update evidence")
     if not torch.equal(ref_before, ref_after):
         raise AssertionError("frozen reference changed")
@@ -192,6 +257,7 @@ def run(args, checked):
     if not torch.allclose(trained, restored, atol=1e-5, rtol=1e-5):
         raise AssertionError("adapter save/reload mismatch")
     proof = dict(software_mechanism_only=args.tiny, optimizer_steps=trainer.state.global_step,
+                 resumed_from_step=start_step if args.resume else None,
                  ddp_adapter_parameters_equal="not_applicable_single_process",
                  changed_tensors=changed, gradients=grads, reference_logits_unchanged=True,
                  probe_logit_max_delta=(trained - initial).abs().max().item(),
@@ -226,9 +292,15 @@ def main():
     parser.add_argument("--precision", choices=("auto", "fp16", "bf16", "fp32"), default="auto")
     parser.add_argument("--steps", type=int, default=2)
     parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument("--save-steps", type=int, default=10,
+                        help="checkpoint (LoRA, optimizer, RNG, reward counters) every N steps and at the end")
+    parser.add_argument("--resume", action="store_true",
+                        help="continue an interrupted run in --output from its latest complete checkpoint")
     args = parser.parse_args()
-    if args.steps < 1:
-        parser.error("steps must be positive")
+    if args.steps < 1 or args.save_steps < 1:
+        parser.error("steps and save-steps must be positive")
+    if args.resume and (args.tiny or args.preflight_only):
+        parser.error("--resume applies to real training runs only")
     if args.group_size < 2:
         parser.error("GRPO needs at least two samples per group")
     if args.tiny:
@@ -241,17 +313,27 @@ def main():
         parser.error("API reward training requires --allow-api")
     if int(os.environ.get("WORLD_SIZE", "1")) != 1:
         parser.error("single process only: group rejection is not verified under DDP")
-    args.output.mkdir(parents=True, exist_ok=False)
-    dump(args.output / "invocation.json", {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()})
+    if args.resume:
+        if not (args.output / "manifest.json").is_file():
+            parser.error("--resume needs a run directory whose manifest.json was written")
+        if (args.output / "verification.json").is_file():
+            parser.error("this run already finished; nothing to resume")
+        # Every resume writes its own records; the original run's files are never replaced.
+        session = next(args.output / f"resume_{n:02d}" for n in range(1, 100)
+                       if not (args.output / f"resume_{n:02d}").exists())
+    else:
+        session = args.output
+    session.mkdir(parents=True, exist_ok=False)
+    dump(session / "invocation.json", {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()})
     try:
         checked = preflight(args)
         if args.preflight_only:
             dump(args.output / "preflight.json", dict(passed=True, training_started=False, tiny=args.tiny,
                                                       train_rows=None if args.tiny else len(checked[0])))
         else:
-            run(args, checked)
+            run(args, checked, session)
     except Exception:
-        dump(args.output / "failure.json", dict(traceback=traceback.format_exc()))
+        dump(session / "failure.json", dict(traceback=traceback.format_exc()))
         raise
 
 

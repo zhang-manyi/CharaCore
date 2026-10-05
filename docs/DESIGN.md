@@ -54,6 +54,12 @@
 
 TRL 0.26.2 GRPOTrainer + PEFT 0.18.0，单进程单卡。默认每步 2 个提示 × 每组 8 样本，最多 64 个新 token，学习率 5e-5，β=0.04，`scale_rewards="group"`，温度 1.0。模型严格离线加载，分片直接流式加载到 GPU。
 
+中断与续训：
+
+- 裁判 API 的瞬时故障（超时、连接中断、HTTP 408 / 429 / 5xx）在请求层按 15、30、60、120、240 s 退避重试，合计约 8 分钟；每次尝试都计入 `MAX_CALLS`，失败经过记入该次调用的 `transport_failures`。其他 HTTP 错误与格式错误不在这一层重试。grpo_style_03 在约第 45 步因连续 3 批 HTTP 429 中止，即这一层缺失所致。
+- 每 `--save-steps`（默认 10）步与结束时存检查点：LoRA、优化器、调度器、RNG、训练器状态，以及奖励计数（`style_reward.json`，在检查点写完之后写入，缺它的检查点视为不完整）。`--resume` 在同一 `--output` 从最近的完整检查点继续，先核对代码、数据、基座权重、裁判与超参数与原 manifest 一致（裁判地址除外）。
+- 续训的记录写进 `resume_NN/`，原文件不覆盖。检查点之后已打分、但未进入已保存更新的批次，其文件保留并在 `resume.json` 中列为 superseded；奖励计数回到检查点时的值。逐批文件编号继续递增，不复用。
+
 训练证明（`verification.json`）：优化步数；LoRA 参数变化；梯度有限且非零；冻结参考 logits 不变；适配器保存后重载 logits 一致；DDP 一致性标为不适用（单卡）。另记被拒组数与奖励统计。
 
 ## 训练前 survey（`scripts/survey_sampling.py`）

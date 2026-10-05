@@ -19,7 +19,7 @@ def main():
     args = parser.parse_args()
     if args.allow_api and args.output is None:
         parser.error("--allow-api requires a new --output directory")
-    policy = APIJudge(args.env_file, allow_calls=args.allow_api)
+    policy = APIJudge(args.env_file, allow_calls=args.allow_api, backoff=())
     print(json.dumps(dict(config_valid=True, api_key_present=True, **policy.metadata,
                           budget=policy.budget, network_called=False), ensure_ascii=False))
     if not args.allow_api:

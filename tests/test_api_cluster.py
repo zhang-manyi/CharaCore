@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 from characore.api_judge import APIJudge, NoRedirect, settings
 from characore.judge_runner import call_judge, judge_identity
@@ -128,6 +128,43 @@ class APIClusterTests(unittest.TestCase):
                 self.assertEqual(first,judge_identity(APIJudge(path).metadata))
             with patch.dict(os.environ,{"CHARACORE_JUDGE_MODEL":"different"}):
                 self.assertNotEqual(first,judge_identity(APIJudge(path).metadata))
+
+    def test_transient_failures_back_off_and_count_toward_budget(self):
+        body=dict(model="gpt-6-astra",choices=[dict(message=dict(content="{}"),finish_reason="stop")])
+        with self.config(MAX_CALLS="10") as path, patch("urllib.request.build_opener") as factory, \
+                patch("characore.api_judge.time.sleep") as sleep:
+            factory.return_value.open.side_effect=[
+                HTTPError("https://example",429,"quota",{},io.BytesIO(b"no credit")),
+                URLError("connection reset"), TimeoutError(), io.BytesIO(json.dumps(body).encode())]
+            policy=APIJudge(path,allow_calls=True,backoff=(1,2,3))
+            raw, usage=policy([])
+            self.assertEqual(raw,"{}")
+            self.assertEqual([c.args[0] for c in sleep.call_args_list],[1,2,3])
+            self.assertEqual(policy.calls,4)
+            self.assertEqual(usage["request_number"],4)
+            self.assertEqual([f["error"] for f in usage["transport_failures"]],["HTTP 429","URLError","TimeoutError"])
+
+    def test_backoff_gives_up_and_never_retries_permanent_errors(self):
+        with self.config(MAX_CALLS="10") as path, patch("urllib.request.build_opener") as factory, \
+                patch("characore.api_judge.time.sleep") as sleep:
+            factory.return_value.open.side_effect=lambda *a, **k: (_ for _ in ()).throw(
+                HTTPError("https://example",503,"down",{},io.BytesIO(b"busy")))
+            policy=APIJudge(path,allow_calls=True,backoff=(1,2))
+            with self.assertRaisesRegex(RuntimeError,"HTTP 503 after 3 attempts") as caught:
+                policy([])
+            self.assertEqual(caught.exception.response_text,"busy")
+            self.assertEqual(sleep.call_count,2)
+            factory.return_value.open.side_effect=HTTPError("https://example",401,"key",{},io.BytesIO(b""))
+            with self.assertRaisesRegex(RuntimeError,"HTTP 401 after 1 attempts"):
+                policy([])
+            self.assertEqual(sleep.call_count,2)
+        with self.config(MAX_CALLS="2") as path, patch("urllib.request.build_opener") as factory, \
+                patch("characore.api_judge.time.sleep"):
+            factory.return_value.open.side_effect=TimeoutError()
+            policy=APIJudge(path,allow_calls=True,backoff=(1,2,3))
+            with self.assertRaisesRegex(RuntimeError,"budget exhausted after 2 transient"):
+                policy([])
+            self.assertEqual(policy.calls,2)
 
     def test_v100_auto_uses_native_fp16(self):
         self.assertEqual(select_precision("cuda",capability=(7,0)),"fp16")

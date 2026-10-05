@@ -260,6 +260,27 @@ class StyleRewardTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "share one prompt"):
             reward(**batch(["……没有带。", "……没有。"], rows=[ROW, other]))
 
+    def test_resume_continues_numbering_and_restores_counters(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = Path(tmp.name) / "r"
+        first = StyleReward(ScriptedJudge("A", "B"), out, 2)
+        first(**batch(["……没有带。", "……嗯。"]))
+        saved = json.loads(json.dumps(first.state()))  # checkpoint after batch 1
+        first(**batch(["……不。", "……是吗。"]))  # batch 2: scored, then the process dies
+        with self.assertRaises(FileExistsError):
+            StyleReward(ScriptedJudge(), out, 2)  # a fresh run never reuses a directory
+        resumed = StyleReward(ScriptedJudge("A", "B"), out, 2, resume=True)
+        self.assertEqual(resumed.restore(saved), [2])  # batch 2 is superseded, its files kept
+        self.assertEqual(resumed.totals, saved["totals"])
+        resumed(**batch(["……不。", "……是吗。"]))
+        self.assertEqual(resumed.totals["batches"], 2)
+        self.assertEqual(sorted(p.name for p in out.glob("rewards_*.json")),
+                         ["rewards_00001.json", "rewards_00002.json", "rewards_00003.json"])
+        self.assertEqual(sorted(p.name for p in (out / "calls").glob("batch_*")),
+                         ["batch_00001", "batch_00002", "batch_00003"])
+        self.assertEqual(StyleReward(ScriptedJudge(), Path(tmp.name) / "s", 2).restore(None), [])
+
     def test_stub_judge_is_order_consistent(self):
         reward = self.reward(StubJudge())
         values = reward(**batch(["……没有带。", "哼，笨蛋，我当然带了！"], base="好的，我带了伞，可以借给你。"))
