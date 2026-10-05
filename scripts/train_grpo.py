@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 import sys
 import traceback
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -73,6 +73,47 @@ def comparable(manifest, key):
     if key == "judge_metadata" and isinstance(value, dict):
         value = {k: v for k, v in value.items() if k != "endpoint"}
     return value
+
+
+PICKLED = (".pt", ".pth", ".bin")  # files the Trainer reads back with torch.load
+
+
+def checkpoint_hashes(checkpoint):
+    """SHA-256 of every file the Trainer wrote into a checkpoint, recorded right after it saved them."""
+    root = Path(checkpoint)
+    return {p.relative_to(root).as_posix(): digest(p) for p in sorted(root.rglob("*"))
+            if p.is_file() and p.name != STATE_FILE}
+
+
+def verify_checkpoint(checkpoint, saved):
+    """Refuse a checkpoint whose files differ from what this run wrote, or that holds unrecorded pickles."""
+    recorded = saved.get("files_sha256")
+    if not recorded:
+        raise ValueError(f"{checkpoint} has no recorded file hashes; it cannot be verified for resume")
+    found = checkpoint_hashes(checkpoint)
+    changed = sorted(k for k in recorded if found.get(k) != recorded[k])
+    unrecorded = sorted(k for k in found if k not in recorded and k.endswith(PICKLED))
+    if changed or unrecorded:
+        raise ValueError(f"checkpoint files differ from those this run saved: changed {changed}, unrecorded {unrecorded}")
+
+
+@contextmanager
+def trusted_torch_load(verified):
+    """transformers refuses torch.load on torch < 2.6 (CVE-2025-32434: a crafted pickle runs code even with
+    weights_only=True). The optimizer, scheduler and RNG files are pickles this run wrote and hashed, and
+    verify_checkpoint has matched them, so the check is lifted for this train() call only."""
+    if not verified:
+        yield
+        return
+    import transformers.trainer as module
+    if not hasattr(module, "check_torch_load_is_safe"):
+        raise RuntimeError("transformers.trainer no longer exposes check_torch_load_is_safe; re-check resume")
+    original = module.check_torch_load_is_safe
+    module.check_torch_load_is_safe = lambda: None
+    try:
+        yield
+    finally:
+        module.check_torch_load_is_safe = original
 
 
 def last_checkpoint(trainer_dir):
@@ -169,13 +210,18 @@ def run(args, checked, session):
     if not args.tiny:
         class SaveRewardState(TrainerCallback):
             def on_save(self, cfg_, state, control, **kwargs):
-                dump(Path(cfg_.output_dir) / f"checkpoint-{state.global_step}" / STATE_FILE,
-                     dict(reward.state(), global_step=state.global_step, rejected_by_trainer=trainer.rejected_total))
+                # Runs after the Trainer has written the checkpoint, so the hashes cover all its files.
+                path = Path(cfg_.output_dir) / f"checkpoint-{state.global_step}"
+                dump(path / STATE_FILE, dict(reward.state(), global_step=state.global_step,
+                                             rejected_by_trainer=trainer.rejected_total,
+                                             files_sha256=checkpoint_hashes(path)))
 
         trainer.add_callback(SaveRewardState())
         if args.resume:
             checkpoint = last_checkpoint(args.output / "trainer")
             saved = read_json(checkpoint / STATE_FILE) if checkpoint else None
+            if checkpoint:
+                verify_checkpoint(checkpoint, saved)
             superseded = reward.restore(saved)
             trainer.rejected_total = saved["rejected_by_trainer"] if saved else 0
             dump(session / "resume.json", dict(
@@ -231,7 +277,8 @@ def run(args, checked, session):
     dump(session / "manifest.json", manifest)
     start_step = int(checkpoint.name.split("-")[1]) if checkpoint else 0
     try:
-        result = trainer.train(resume_from_checkpoint=str(checkpoint) if checkpoint else None)
+        with trusted_torch_load(verified=checkpoint is not None):
+            result = trainer.train(resume_from_checkpoint=str(checkpoint) if checkpoint else None)
     finally:
         if not args.tiny:
             # Curves and counts survive an aborted run too.

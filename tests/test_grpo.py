@@ -281,6 +281,30 @@ class StyleRewardTests(unittest.TestCase):
                          ["batch_00001", "batch_00002", "batch_00003"])
         self.assertEqual(StyleReward(ScriptedJudge(), Path(tmp.name) / "s", 2).restore(None), [])
 
+    def test_checkpoint_pickles_must_match_recorded_hashes(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("train_grpo", ROOT / "scripts/train_grpo.py")
+        train = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(train)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        ckpt = Path(tmp.name) / "checkpoint-5"
+        ckpt.mkdir()
+        (ckpt / "optimizer.pt").write_bytes(b"saved by this run")
+        (ckpt / "adapter_model.safetensors").write_bytes(b"weights")
+        saved = dict(files_sha256=train.checkpoint_hashes(ckpt))
+        train.verify_checkpoint(ckpt, saved)
+        with self.assertRaisesRegex(ValueError, "no recorded file hashes"):
+            train.verify_checkpoint(ckpt, {})
+        (ckpt / "rng_state.pth").write_bytes(b"dropped in later")
+        with self.assertRaisesRegex(ValueError, r"unrecorded \['rng_state.pth'\]"):
+            train.verify_checkpoint(ckpt, saved)
+        (ckpt / "rng_state.pth").unlink()
+        (ckpt / "optimizer.pt").write_bytes(b"replaced")
+        with self.assertRaisesRegex(ValueError, r"changed \['optimizer.pt'\]"):
+            train.verify_checkpoint(ckpt, saved)
+        self.assertEqual(train.last_checkpoint(tmp.name), None)  # no reward state: incomplete save
+
     def test_stub_judge_is_order_consistent(self):
         reward = self.reward(StubJudge())
         values = reward(**batch(["……没有带。", "哼，笨蛋，我当然带了！"], base="好的，我带了伞，可以借给你。"))
