@@ -17,6 +17,7 @@ data, base weights, judge, hyperparameters and process count match the original 
 import argparse
 import importlib.metadata
 import json
+import math
 import os
 from pathlib import Path
 import sys
@@ -279,7 +280,7 @@ def run(args, checked, session, sync):
     if not trainables or any("lora_" not in n for n in trainables):
         raise AssertionError("expected LoRA-only updates")
     before = {n: p.detach().cpu().clone() for n, p in trainables.items()}
-    grads = dict(calls=0, nonzero=0, finite=True)
+    grads = dict(calls=0, nonzero=0, nonfinite=0)
     checkpoint, superseded = None, []
     if not args.tiny:
         class SaveRewardState(TrainerCallback):
@@ -321,10 +322,14 @@ def run(args, checked, session, sync):
                 print(json.dumps(dict(resume_from=str(checkpoint) if checkpoint else "start (no complete checkpoint)",
                                       superseded_batches=len(superseded))), flush=True)
 
+    # These are this rank's loss-scaled gradients before the DDP all-reduce. Under fp16 an overflow (inf/nan)
+    # is expected now and then: GradScaler skips that optimizer step on every rank and lowers the scale, and
+    # the step logs grad_norm nan. Other precisions have no scaler, so there a non-finite gradient is a fault.
     def observe(g):
         grads["calls"] += 1
-        grads["nonzero"] += bool(torch.count_nonzero(g))
-        grads["finite"] &= bool(torch.isfinite(g).all())
+        finite = bool(torch.isfinite(g).all())
+        grads["nonfinite"] += not finite
+        grads["nonzero"] += finite and bool(torch.count_nonzero(g))
 
     hooks = [p.register_hook(observe) for p in trainables.values()]
     probe = tokenizer(rows[0]["prompt"], return_tensors="pt").to(policy.device)
@@ -389,11 +394,22 @@ def run(args, checked, session, sync):
     changed = sum(not torch.equal(before[n], p.detach().cpu()) for n, p in trainables.items())
     # Resuming from the final checkpoint (cut off during verification) runs no step, so no gradients.
     stepped = trainer.state.global_step > start_step
+    # Steps whose logged global grad norm is inf/nan: GradScaler skipped them (logging_steps=1, one entry per step).
+    grads["overflow_steps"] = [e["step"] for e in trainer.state.log_history
+                               if "loss" in e and e["step"] > start_step and not math.isfinite(e.get("grad_norm", 0.0))]
     problem = None
-    if not changed or not grads["finite"] or (stepped and not grads["nonzero"]) or torch.equal(initial, trained):
-        problem = "no finite nonzero gradient/update evidence"
+    if not changed:
+        problem = "no LoRA tensor changed"
+    elif torch.equal(initial, trained):
+        problem = "probe logits unchanged by training"
+    elif stepped and not grads["nonzero"]:
+        problem = "no finite nonzero gradient"
+    elif grads["nonfinite"] and precision != "fp16":
+        problem = f"{grads['nonfinite']} non-finite gradients without fp16 loss scaling"
     elif not torch.equal(ref_before, ref_after):
         problem = "frozen reference changed"
+    if problem:
+        problem = f"{problem} (rank {sync.rank}: {dict(grads, changed_tensors=changed)})"
     # Every rank learns every rank's verdict, so one rank's failure never leaves another waiting below.
     problems = {r: p for r, p in enumerate(sync.gather(problem)) if p}
     if problems:
