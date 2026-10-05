@@ -52,7 +52,15 @@
 
 ## 训练（`scripts/train_grpo.py`）
 
-TRL 0.26.2 GRPOTrainer + PEFT 0.18.0，单进程单卡。默认每步 2 个提示 × 每组 8 样本，最多 64 个新 token，学习率 5e-5，β=0.04，`scale_rewards="group"`，温度 1.0。模型严格离线加载，分片直接流式加载到 GPU。
+TRL 0.26.2 GRPOTrainer + PEFT 0.18.0，单进程单卡，或 Accelerate 原生 DDP 双卡（`accelerate launch --num_processes 2`，不用 DeepSpeed）。默认每步 2 个提示 × 每组 8 样本，最多 64 个新 token，学习率 5e-5，β=0.04，`scale_rewards="group"`，温度 1.0。模型严格离线加载，分片直接流式加载到各自的 GPU。
+
+双卡时全局批次不变：每步仍是 2 × 8 = 16 个样本，每卡 8 个，梯度累积步数按卡数折半，DDP 对两卡梯度取平均，所以步数、裁判调用量与单卡相同，结果可直接对比。
+
+- 被拒组跨卡一致：TRL 把各卡的奖励按卡序拼接后算组内优势，一组 8 个样本可能分在两张卡上。每张卡只给自己的样本调裁判，然后交换逐样本结果，在整批上判定被拒组、计数与指标；任一卡上的失败让两张卡都把这组掩码。连续全拒计数因此两卡相同，中止也同时发生。分组检查在调用裁判之前，两卡同时报错，不会一方空等。
+- 每卡分开：采样种子（seed + rank，TRL 设置）、裁判调用目录与逐批记录（`reward/rank0/`、`reward/rank1/`）、API 预算（`MAX_CALLS` 按进程计）、检查点中的奖励状态（`style_reward.json` / `style_reward_rank1.json`）。续训时每卡恢复自己的状态。
+- 共享文件（manifest、`log_history.json`、`resume.json`、适配器、`verification.json`）只由 rank 0 写。保存检查点时等两卡都写完，rank 1 先写奖励状态，rank 0 再对检查点全部文件取哈希并最后写入自己的状态；缺任何一卡状态的检查点视为不完整。
+- 集合通信超时设为 2 小时：一卡在等另一卡的裁判退避重试。
+- manifest 记录 `world_size`，续训必须用相同卡数。
 
 中断与续训：
 
@@ -61,7 +69,7 @@ TRL 0.26.2 GRPOTrainer + PEFT 0.18.0，单进程单卡。默认每步 2 个提�
 - 集群 torch < 2.6，transformers 因 CVE-2025-32434 拒绝用 `torch.load` 读优化器、调度器与 RNG 状态（pickle 文件）。保存时把检查点内全部文件的 SHA-256 记入 `style_reward.json`；续训先逐个核对，有改动或多出未记录的 pickle 文件即拒绝，核对通过才在这次 `train()` 内放行该检查。哈希与检查点在同一目录，防的是误改与混入，防不住能同时改两者的人。
 - 续训的记录写进 `resume_NN/`，原文件不覆盖。检查点之后已打分、但未进入已保存更新的批次，其文件保留并在 `resume.json` 中列为 superseded；奖励计数回到检查点时的值。逐批文件编号继续递增，不复用。
 
-训练证明（`verification.json`）：优化步数；LoRA 参数变化；梯度有限且非零；冻结参考 logits 不变；适配器保存后重载 logits 一致；DDP 一致性标为不适用（单卡）。另记被拒组数与奖励统计。
+训练证明（`verification.json`）：优化步数；LoRA 参数变化；梯度有限且非零；冻结参考 logits 不变；适配器保存后重载 logits 一致；`ddp_adapter_parameters_equal`：双卡时训练结束后实测，记录每卡 LoRA 张量字节的 SHA-256 与相对 rank 0 的逐元素最大绝对差，不一致即报错；单卡标为不适用。另记被拒组数与奖励统计。
 
 ## 训练前 survey（`scripts/survey_sampling.py`）
 

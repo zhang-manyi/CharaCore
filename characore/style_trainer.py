@@ -10,22 +10,32 @@ count in the per-sequence .mean() denominator of loss_type="grpo", which scales
 that step's loss by kept/total; the count is logged so this is visible.
 
 The override runs before _prepare_inputs shuffles and splits the generation
-batch, so rows are still consecutive groups of num_generations. Single process
-only: with DDP the reward sees all ranks' rows but each rank holds a slice.
+batch, so rows are still consecutive groups of num_generations. Under DDP the
+reward sees all ranks' rows concatenated in rank order (gather at 1223) while
+each rank keeps rows [rank * n, (rank + 1) * n) (process_slice at 1967); the
+reward returns global group indices and each rank masks the part it holds.
 """
 
 
-def apply_rejection(output, rejected, group_size):
-    """Zero completion_mask and advantages for every row of each rejected group, in place."""
+def apply_rejection(output, rejected, group_size, offset=0, total=None):
+    """Zero completion_mask and advantages, in place, for this rank's rows of each rejected group.
+
+    output holds global rows [offset, offset + rows) of a batch of total rows (default: all of it).
+    """
     rows = output["completion_mask"].shape[0]
-    if rows % group_size:
+    total = rows if total is None else total
+    if total % group_size:
         raise ValueError("generation batch is not whole groups")
+    if not 0 <= offset <= total - rows:
+        raise ValueError("local rows fall outside the batch")
     for group in rejected:
-        if not 0 <= group < rows // group_size:
+        if not 0 <= group < total // group_size:
             raise ValueError(f"rejected group {group} outside this batch")
-        span = slice(group * group_size, (group + 1) * group_size)
-        output["completion_mask"][span] = 0
-        output["advantages"][span] = 0
+        start, end = max(group * group_size, offset), min((group + 1) * group_size, offset + rows)
+        if start < end:
+            span = slice(start - offset, end - offset)
+            output["completion_mask"][span] = 0
+            output["advantages"][span] = 0
     return output
 
 
@@ -35,15 +45,15 @@ def make_trainer_class():
     class StyleGRPOTrainer(GRPOTrainer):
         def __init__(self, *args, style_reward, **kwargs):
             super().__init__(*args, **kwargs)
-            if self.accelerator.num_processes != 1:
-                raise ValueError("group rejection is verified for a single process only")
             self.style_reward = style_reward
             self.rejected_total = 0
 
         def _generate_and_score_completions(self, inputs):
             output = super()._generate_and_score_completions(inputs)
             rejected = self.style_reward.take_rejected()
-            apply_rejection(output, rejected, self.num_generations)
+            rows = output["completion_mask"].shape[0]
+            apply_rejection(output, rejected, self.num_generations, offset=self.accelerator.process_index * rows,
+                            total=rows * self.accelerator.num_processes)
             self.rejected_total += len(rejected)
             mode = "train" if self.model.training else "eval"
             metrics = self.style_reward.last_metrics

@@ -3,6 +3,7 @@
 import json
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 
 from characore.judge import (ATTR_PROTOCOL, PROTOCOL, make_attribution_request, make_request,
@@ -71,6 +72,55 @@ def batch(replies, rows=None, group=2, base="……base"):
     return dict(prompts=pick("id"), completions=replies, row_id=pick("id"), character=pick("character"),
                 base_reply=[base] * len(replies), situation=pick("situation"), speaker=pick("speaker"),
                 line=pick("line"))
+
+
+def load_train_script():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("train_grpo", ROOT / "scripts/train_grpo.py")
+    train = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(train)
+    return train
+
+
+class ThreadRanks:
+    """In-process stand-in for a process group: one thread per rank, all_gather through a shared barrier."""
+
+    def __init__(self, world):
+        self.world, self.slots, self.wait = world, [None] * world, threading.Barrier(world, timeout=10)
+
+    def rank(self, r):
+        ranks = self
+
+        class Rank:
+            rank, world = r, ranks.world
+
+            def gather(self, value):
+                ranks.wait.wait()
+                ranks.slots[r] = value
+                ranks.wait.wait()
+                out = list(ranks.slots)
+                ranks.wait.wait()
+                return out
+
+            def barrier(self):
+                ranks.wait.wait()
+        return Rank()
+
+    def run(self, work):
+        """work(rank) on every rank at once; returns each rank's result or the exception it raised."""
+        results = [None] * self.world
+
+        def one(r):
+            try:
+                results[r] = work(r)
+            except Exception as exc:
+                results[r] = exc
+        threads = [threading.Thread(target=one, args=(r,)) for r in range(self.world)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        return results
 
 
 class RuleTests(unittest.TestCase):
@@ -282,10 +332,7 @@ class StyleRewardTests(unittest.TestCase):
         self.assertEqual(StyleReward(ScriptedJudge(), Path(tmp.name) / "s", 2).restore(None), [])
 
     def test_checkpoint_pickles_must_match_recorded_hashes(self):
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("train_grpo", ROOT / "scripts/train_grpo.py")
-        train = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(train)
+        train = load_train_script()
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         ckpt = Path(tmp.name) / "checkpoint-5"
@@ -305,6 +352,22 @@ class StyleRewardTests(unittest.TestCase):
             train.verify_checkpoint(ckpt, saved)
         self.assertEqual(train.last_checkpoint(tmp.name), None)  # no reward state: incomplete save
 
+    def test_checkpoint_needs_every_rank_state(self):
+        train = load_train_script()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        ckpt = Path(tmp.name) / "checkpoint-5"
+        ckpt.mkdir()
+        (ckpt / "rng_state_1.pth").write_bytes(b"rank 1 rng")
+        (ckpt / "style_reward_rank1.json").write_text("{}")
+        self.assertEqual(train.state_files(2), ["style_reward.json", "style_reward_rank1.json"])
+        self.assertEqual(list(train.checkpoint_hashes(ckpt)), ["rng_state_1.pth"])  # state files record, not hashed
+        self.assertIsNone(train.last_checkpoint(tmp.name, 2))  # rank 0 had not written its state yet
+        (ckpt / "style_reward.json").write_text("{}")
+        self.assertEqual(train.last_checkpoint(tmp.name, 2), ckpt)
+        self.assertEqual(train.last_checkpoint(tmp.name), ckpt)
+        self.assertEqual(train.comparable({}, "world_size"), 1)  # older manifests were one process
+
     def test_stub_judge_is_order_consistent(self):
         reward = self.reward(StubJudge())
         values = reward(**batch(["……没有带。", "哼，笨蛋，我当然带了！"], base="好的，我带了伞，可以借给你。"))
@@ -312,8 +375,94 @@ class StyleRewardTests(unittest.TestCase):
         self.assertGreater(values[0], values[1])
 
 
+class TwoRankRewardTests(unittest.TestCase):
+    """Group 4 over two ranks of 6 rows: group 1 is rank 0's rows 4-5 plus rank 1's rows 0-1."""
+    RANK_REPLIES = (["……没有带。"] * 4 + ["……嗯。", "……是吗。"],
+                    ["……不知道。", "……不。", "……好。", "……好。", "……走吧。", "……走吧。"])
+
+    def rewards(self, ranks, judge=lambda: ScriptedJudge("A", "B", fail_on="不知道")):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        return [StyleReward(judge(), Path(tmp.name) / f"rank{r}", 4, sync=ranks.rank(r)) for r in range(2)]
+
+    def test_failure_on_one_rank_rejects_the_straddling_group_on_both(self):
+        ranks = ThreadRanks(2)
+        rewards = self.rewards(ranks)
+        values = ranks.run(lambda r: rewards[r](**batch(self.RANK_REPLIES[r])))
+        self.assertEqual(values[0][4:], [None, None])  # rank 0's judge saw no failure
+        self.assertEqual(values[1][:2], [None, None])
+        self.assertTrue(all(v is not None for v in values[0][:4] + values[1][2:]))
+        self.assertEqual([r.take_rejected() for r in rewards], [[1], [1]])
+        self.assertEqual(rewards[0].totals, rewards[1].totals)
+        self.assertEqual(rewards[0].totals["groups"], 3)
+        self.assertEqual(rewards[0].last_metrics["rejection_reasons"], rewards[1].last_metrics["rejection_reasons"])
+        # Judge calls are local; the totals count both ranks'.
+        local = [r.local_judge_calls for r in rewards]
+        self.assertEqual(rewards[0].totals["judge_calls"], sum(local))
+        record = json.loads((rewards[1].output / "rewards_00001.json").read_text(encoding="utf-8"))
+        self.assertEqual((record["rank"], record["row_offset"], record["rejected_groups"]), (1, 6, [1]))
+        self.assertEqual(len(record["samples"]), 6)
+
+    def test_all_rejected_streak_aborts_both_ranks(self):
+        ranks = ThreadRanks(2)
+        rewards = self.rewards(ranks, judge=lambda: ScriptedJudge(fail_on="……"))
+        for _ in range(2):
+            ranks.run(lambda r: rewards[r](**batch(self.RANK_REPLIES[r])))
+            self.assertEqual([r.take_rejected() for r in rewards], [[0, 1, 2], [0, 1, 2]])
+        results = ranks.run(lambda r: rewards[r](**batch(self.RANK_REPLIES[r])))
+        self.assertTrue(all(isinstance(e, RuntimeError) and "consecutive" in str(e) for e in results))
+
+    def test_layout_mismatch_raises_on_both_before_any_call(self):
+        ranks = ThreadRanks(2)
+        judges = [ScriptedJudge(), ScriptedJudge()]
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        rewards = [StyleReward(judges[r], Path(tmp.name) / f"rank{r}", 4, sync=ranks.rank(r)) for r in range(2)]
+        other = dict(ROW, id="T01-L2-rei")
+        inputs = [batch(["……嗯。"] * 6), batch(["……嗯。"] * 6, rows=[ROW] + [other] * 5)]
+        results = ranks.run(lambda r: rewards[r](**inputs[r]))
+        self.assertTrue(all(isinstance(e, ValueError) and "share one prompt" in str(e) for e in results))
+        self.assertEqual([j.calls for j in judges], [0, 0])
+        results = ranks.run(lambda r: rewards[r](**batch(["……嗯。"] * (6 if r == 0 else 2))))
+        self.assertTrue(all(isinstance(e, ValueError) and "different numbers" in str(e) for e in results))
+
+    def test_each_rank_resumes_its_own_state(self):
+        ranks = ThreadRanks(2)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        make = lambda r, resume=False: StyleReward(ScriptedJudge("A", "B", fail_on="不知道"), Path(tmp.name) / f"rank{r}",
+                                                   4, resume=resume, sync=ranks.rank(r))
+        first = [make(r) for r in range(2)]
+        ranks.run(lambda r: first[r](**batch(self.RANK_REPLIES[r])))
+        saved = [json.loads(json.dumps(f.state())) for f in first]
+        self.assertNotEqual(saved[0]["local_judge_calls"], saved[1]["local_judge_calls"])
+        ranks.run(lambda r: first[r](**batch(self.RANK_REPLIES[r])))  # scored after the checkpoint
+        resumed = [make(r, resume=True) for r in range(2)]
+        self.assertEqual([resumed[r].restore(saved[r]) for r in range(2)], [[2], [2]])
+        self.assertEqual([r.local_judge_calls for r in resumed], [s["local_judge_calls"] for s in saved])
+        ranks.run(lambda r: resumed[r](**batch(self.RANK_REPLIES[r])))
+        self.assertEqual(resumed[0].totals, resumed[1].totals)
+        self.assertEqual(resumed[0].totals["batches"], 2)
+
+
 @unittest.skipUnless(__import__("importlib").util.find_spec("torch"), "torch not installed")
 class RejectionMaskTests(unittest.TestCase):
+    def test_each_rank_masks_its_part_of_a_straddling_group(self):
+        import torch
+        masked = []
+        for rank in range(2):  # 12 rows, group 4, rank 0 holds rows 0-5 and rank 1 rows 6-11
+            output = dict(completion_mask=torch.ones(6, 2, dtype=torch.long), advantages=torch.ones(6))
+            apply_rejection(output, [1], 4, offset=6 * rank, total=12)
+            masked.append(output["advantages"].tolist())
+        self.assertEqual(masked, [[1, 1, 1, 1, 0, 0], [0, 0, 1, 1, 1, 1]])
+        output = dict(completion_mask=torch.ones(6, 2, dtype=torch.long), advantages=torch.ones(6))
+        apply_rejection(output, [0], 4, offset=6, total=12)  # group 0 lies wholly on rank 0
+        self.assertEqual(output["advantages"].tolist(), [1] * 6)
+        with self.assertRaises(ValueError):
+            apply_rejection(output, [3], 4, offset=6, total=12)
+        with self.assertRaises(ValueError):
+            apply_rejection(output, [], 4, offset=8, total=12)
+
     def test_masks_exactly_the_rejected_group(self):
         import torch
         output = dict(completion_mask=torch.ones(6, 3, dtype=torch.long), advantages=torch.arange(6.) + 1)

@@ -99,6 +99,14 @@ CUDA_VISIBLE_DEVICES=0 python scripts/train_grpo.py --base $CHARACORE_POLICY_MOD
 
 续训的日志、`log_history.json`、`reward_totals.json` 在 `runs/grpo_style_01/resume_01/`；`log_history.json` 覆盖从第 1 步起的全部步数。
 
+双卡：把 `CUDA_VISIBLE_DEVICES=0 python` 换成 `CUDA_VISIBLE_DEVICES=0,1 accelerate launch --num_processes 2 --mixed_precision fp16`，其余参数不变（每步仍是 2 × 8 个样本，每卡 8 个）：
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1 accelerate launch --num_processes 2 --mixed_precision fp16 scripts/train_grpo.py --base $CHARACORE_POLICY_MODEL --suite experiments/style_v1 --base-replies experiments/style_v1_base_qwen3_4b --judge-backend stub --device cuda --precision fp16 --steps 3 --output runs/grpo_stub_ddp_01
+```
+
+逐批记录分在 `reward/rank0/`、`reward/rank1/`；rank 1 的 `reward_totals_rank1.json`、`failure_rank1.json` 与 rank 0 的文件放在一起。续训同样加 `--resume`，卡数必须与原运行相同。
+
 ## 8. 评测
 
 ```bash
@@ -110,4 +118,4 @@ CUDA_VISIBLE_DEVICES=0 python scripts/eval_style.py --base $CHARACORE_POLICY_MOD
 
 ## 产物与限度
 
-`verification.json`：优化步数、LoRA 参数变化、梯度有限非零、冻结参考不变、适配器重载一致；DDP 一致性不适用（单卡）。裁判与人工一致率未测量，裁判类指标都是 uncalibrated。`runs/` 与模型不进 Git。
+`verification.json`：优化步数、LoRA 参数变化、梯度有限非零、冻结参考不变、适配器重载一致；双卡时 `ddp_adapter_parameters_equal` 为实测的两卡 LoRA 一致性，单卡为不适用。裁判与人工一致率未测量，裁判类指标都是 uncalibrated。`runs/` 与模型不进 Git。

@@ -18,6 +18,12 @@ insufficient) is rejected as a whole: every member returns None,
 so TRL's nansum gives the group all-zero rewards and zero advantages, and the
 trainer additionally zeroes its completion_mask. A partial None would be summed
 as 0 and silently corrupt the group's mean and std, so it is never returned.
+
+Under DDP each rank scores only its own rows and TRL concatenates them in rank
+order, so a group can straddle two ranks. Every rank therefore exchanges its
+per-sample outcomes and decides rejection, counters and metrics on the whole
+batch: a failure on any rank rejects the group on all of them, and the
+all-rejected streak is the same everywhere. Judge calls stay local to the rank.
 """
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -174,38 +180,71 @@ class PairJudge:
             return dict(pool.map(one, pending.items()))
 
 
-class StyleReward:
-    """TRL reward function. Single process: the batch holds whole consecutive groups of G."""
+class SingleProcess:
+    """Cross-rank exchange for one process: the whole batch is this rank's."""
+    rank, world = 0, 1
 
-    def __init__(self, judge, output, group_size, workers=8, max_all_rejected=3, resume=False):
+    def gather(self, value):
+        return [value]
+
+    def barrier(self):
+        pass
+
+
+class TorchDistributed:
+    """all_gather_object over the initialised default process group, one entry per rank in rank order."""
+
+    def __init__(self):
+        import torch.distributed as dist
+        self.dist, self.rank, self.world = dist, dist.get_rank(), dist.get_world_size()
+
+    def gather(self, value):
+        out = [None] * self.world
+        self.dist.all_gather_object(out, value)
+        return out
+
+    def barrier(self):
+        self.dist.barrier()
+
+
+class StyleReward:
+    """TRL reward function. The global batch (all ranks' rows in rank order) holds whole consecutive groups of G."""
+
+    def __init__(self, judge, output, group_size, workers=8, max_all_rejected=3, resume=False, sync=None):
         self.__name__ = "style"  # TRL names the reward column after this
         self.pairs = PairJudge(judge, Path(output) / "calls", workers, resume=resume)
         self.output = Path(output)
+        self.sync = sync or SingleProcess()
         self.group_size = group_size
         self.max_all_rejected = max_all_rejected
         self.all_rejected_streak = 0
         self.pending_rejected = None
         self.last_metrics = None
+        # totals cover the whole batch and are identical on every rank; local_judge_calls is this rank's own.
         self.totals = dict(batches=0, groups=0, rejected_groups=0, judge_calls=0, reused_requests=0,
                            skipped_identical=0, hard=0, order_inconsistent=0)
+        self.local_judge_calls = 0
         # rewards_{serial}.json numbering; equals totals["batches"] unless the run was resumed.
         self.serial = max((int(p.stem.split("_")[1]) for p in self.output.glob("rewards_*.json")), default=0)
 
     def state(self):
         """Counters a checkpoint carries so that a resumed run continues them."""
-        return dict(totals=dict(self.totals), all_rejected_streak=self.all_rejected_streak, serial=self.serial)
+        return dict(totals=dict(self.totals), all_rejected_streak=self.all_rejected_streak, serial=self.serial,
+                    local_judge_calls=self.local_judge_calls)
 
     def restore(self, state):
         """Continue from a checkpoint's counters (None: no checkpoint, start from zero). Batches scored
         after that checkpoint were never part of a saved update; their files stay on disk and are
         returned as superseded."""
-        state = state or dict(totals={k: 0 for k in self.totals}, all_rejected_streak=0, serial=0)
+        state = state or dict(totals={k: 0 for k in self.totals}, all_rejected_streak=0, serial=0,
+                              local_judge_calls=0)
         self.totals = dict(state["totals"])
         self.all_rejected_streak = state["all_rejected_streak"]
+        self.local_judge_calls = state["local_judge_calls"]
         return list(range(state["serial"] + 1, self.serial + 1))
 
     def take_rejected(self):
-        """Group indices rejected in the latest call. The trainer must consume exactly one per batch."""
+        """Global group indices rejected in the latest call. The trainer must consume exactly one per batch."""
         if self.pending_rejected is None:
             raise RuntimeError("reward was not computed for this batch")
         rejected, self.pending_rejected = self.pending_rejected, None
@@ -213,12 +252,20 @@ class StyleReward:
 
     def __call__(self, prompts, completions, completion_ids=None, row_id=None, character=None,
                  base_reply=None, situation=None, speaker=None, line=None, **kwargs):
-        g = self.group_size
+        g, sync = self.group_size, self.sync
         n = len(completions)
-        if n % g or not (len(row_id) == len(character) == len(base_reply) == n):
+        if not (len(prompts) == len(row_id) == len(character) == len(base_reply) == n):
+            raise ValueError("reward batch columns differ in length")
+        # Check the global grouping before any judge call. Every rank raises together, so none is left waiting.
+        layout = sync.gather(dict(rows=n, keys=[(r, p) for r, p in zip(row_id, prompts)]))
+        if any(e["rows"] != n for e in layout):
+            raise ValueError("ranks scored different numbers of rows")
+        keys = [k for e in layout for k in e["keys"]]
+        total, offset = n * sync.world, n * sync.rank
+        if total % g:
             raise ValueError("reward batch is not whole groups")
-        for start in range(0, n, g):
-            if len(set(row_id[start:start + g])) != 1 or len(set(prompts[start:start + g])) != 1:
+        for start in range(0, total, g):
+            if len(set(keys[start:start + g])) != 1:
                 raise ValueError("group members must share one prompt; ordering assumption broken")
         replies = [clean_reply(c) for c in completions]
         rows = [dict(character=character[i], situation=situation[i], speaker=speaker[i], line=line[i])
@@ -235,60 +282,70 @@ class StyleReward:
                     pending.setdefault(key, request)
             samples.append(sample)
         calls = self.pairs.run(pending) if pending else {}
-        self.totals["judge_calls"] += len(calls)
-        self.totals["reused_requests"] += wanted - len(pending)
+        self.local_judge_calls += len(calls)
+        # Each sample's outcome needs only its own calls; whether it is usable is decided per group below.
+        for s in samples:
+            if s["hard"]:
+                s.update(pairwise=None, off_topic=False, value=-1.0)
+            elif "keys" not in s:
+                s.update(pairwise=0.5, off_topic=False, identical_to_base=True)
+            else:
+                try:
+                    s["pairwise"], s["off_topic"], s["order_inconsistent"] = pair_outcome(
+                        calls[s["keys"]["AB"]], calls[s["keys"]["BA"]])
+                except ValueError as exc:
+                    s["unusable"] = str(exc)
+                    continue
+            if "value" not in s:
+                s["value"] = round(WEIGHTS["pairwise"] * s["pairwise"] + WEIGHTS["style"] * s["style"]
+                                   - WEIGHTS["off_topic"] * s["off_topic"], 6)
 
-        values, rejected, reasons = [None] * n, [], {}
-        for group, start in enumerate(range(0, n, g)):
-            members, error = [], None
-            for i in range(start, start + g):
-                s = samples[i]
-                if s["hard"]:
-                    s.update(pairwise=None, off_topic=False, value=-1.0)
-                    self.totals["hard"] += 1
-                elif "keys" not in s:
-                    s.update(pairwise=0.5, off_topic=False, identical_to_base=True)
-                    self.totals["skipped_identical"] += 1
-                else:
-                    try:
-                        s["pairwise"], s["off_topic"], s["order_inconsistent"] = pair_outcome(
-                            calls[s["keys"]["AB"]], calls[s["keys"]["BA"]])
-                        self.totals["order_inconsistent"] += s["order_inconsistent"]
-                    except ValueError as exc:
-                        s["unusable"] = str(exc)
-                        error = error or str(exc)
-                        continue
-                if "value" not in s:
-                    s["value"] = round(WEIGHTS["pairwise"] * s["pairwise"] + WEIGHTS["style"] * s["style"]
-                                       - WEIGHTS["off_topic"] * s["off_topic"], 6)
-                members.append(s["value"])
+        # Every rank sees the same global batch from here on, so every decision below is identical across ranks.
+        everyone = sync.gather(dict(samples=samples, replies=replies, characters=list(character),
+                                    calls=len(calls), reused=wanted - len(pending)))
+        merged = lambda key: [x for e in everyone for x in e[key]]
+        all_samples = merged("samples")
+        batch_calls, batch_reused = sum(e["calls"] for e in everyone), sum(e["reused"] for e in everyone)
+        self.totals["judge_calls"] += batch_calls
+        self.totals["reused_requests"] += batch_reused
+
+        values, rejected, reasons = [None] * total, [], {}
+        for group, start in enumerate(range(0, total, g)):
+            members = all_samples[start:start + g]
+            self.totals["hard"] += sum(bool(s["hard"]) for s in members)
+            self.totals["skipped_identical"] += sum(bool(s.get("identical_to_base")) for s in members)
+            self.totals["order_inconsistent"] += sum(bool(s.get("order_inconsistent")) for s in members)
+            error = next((s["unusable"] for s in members if "unusable" in s), None)
             if error:
                 rejected.append(group)
                 reasons[error] = reasons.get(error, 0) + 1
             else:
-                values[start:start + g] = members
-        groups = n // g
+                values[start:start + g] = [s["value"] for s in members]
+        groups = total // g
         self.totals["batches"] += 1
         self.totals["groups"] += groups
         self.totals["rejected_groups"] += len(rejected)
-        compared = [s for s in samples if s.get("pairwise") is not None and "keys" in s]
+        compared = [s for s in all_samples if s.get("pairwise") is not None and "keys" in s]
         judged = [s["pairwise"] for s in compared]
         inconsistent = sum(s["order_inconsistent"] for s in compared)
-        metrics = rule_metrics(replies, character)
+        metrics = rule_metrics(merged("replies"), merged("characters"))
         metrics.update(groups=groups, rejected_groups=len(rejected), rejection_reasons=reasons,
-                       judge_calls=len(calls), reused_requests=wanted - len(pending),
+                       judge_calls=batch_calls, reused_requests=batch_reused,
                        win_rate_vs_base=sum(judged) / len(judged) if judged else None,
                        order_inconsistent=inconsistent,
                        order_inconsistent_rate=inconsistent / len(compared) if compared else None,
-                       off_topic=sum(bool(s.get("off_topic")) for s in samples),
+                       off_topic=sum(bool(s.get("off_topic")) for s in all_samples),
                        varied_groups=sum(len({v for v in values[s:s + g]}) > 1
-                                         for k, s in enumerate(range(0, n, g)) if k not in rejected))
+                                         for k, s in enumerate(range(0, total, g)) if k not in rejected))
         self.last_metrics = metrics
         self.serial += 1
-        dump(self.output / f"rewards_{self.serial:05d}.json",
-             dict(metrics=metrics, rejected_groups=rejected, samples=samples, values=values))
+        record = dict(metrics=metrics, rejected_groups=rejected, samples=samples, values=values[offset:offset + n])
+        if sync.world > 1:
+            # This rank's rows only; rejected_groups and metrics cover the whole batch.
+            record.update(rank=sync.rank, row_offset=offset, local_judge_calls=len(calls))
+        dump(self.output / f"rewards_{self.serial:05d}.json", record)
         self.pending_rejected = rejected
         self.all_rejected_streak = self.all_rejected_streak + 1 if len(rejected) == groups else 0
         if self.all_rejected_streak >= self.max_all_rejected:
             raise RuntimeError(f"every group rejected in {self.all_rejected_streak} consecutive batches: {reasons}")
-        return values
+        return values[offset:offset + n]
