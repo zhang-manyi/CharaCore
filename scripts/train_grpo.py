@@ -1,4 +1,7 @@
-"""TRL 0.26.2 GRPO/PEFT entry: two-character speech style vs frozen base replies, or CPU random-model mechanics.
+"""TRL 0.26.2 GRPO/PEFT entry: speech style vs frozen base replies, or CPU random-model mechanics.
+
+--character rei|asuka trains one character's 90 train rows into its own LoRA (the v4 setup: two
+single-GPU runs side by side); without it both characters share one adapter.
 
 One process on one GPU, or Accelerate DDP (accelerate launch --num_processes 2), one GPU per rank. The
 global batch is the same either way: --prompts-per-step prompts x --group-size samples per optimizer
@@ -32,18 +35,20 @@ os.environ["TRANSFORMERS_OFFLINE"] = "1"
 os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+from characore.canon import canon_identity, load_canon
 from characore.persona import render_prompt
 from characore.protocol import digest, dump, read_json
 from characore.precision import select_precision
-from characore.style_data import load_base_replies, load_suite
+from characore.style_data import load_base_replies, load_suite, select_character
 from characore.style_rewards import REWARD_SPEC, SingleProcess, TorchDistributed
 
 # A rank waits in the reward exchange while the other rides out judge API backoff (about 8 minutes per
 # call, two waves of calls per batch, one retry each), so collectives get far longer than NCCL's default.
 DDP_TIMEOUT = 7200
+SCALE_REWARDS = "batch"
 
 SOURCES = ("scripts/train_grpo.py", "characore/style_rewards.py", "characore/style_trainer.py",
-           "characore/style_data.py", "characore/persona.py", "characore/judge.py")
+           "characore/style_data.py", "characore/persona.py", "characore/judge.py", "characore/canon.py")
 
 
 def per_rank(path, rank):
@@ -112,7 +117,7 @@ class TinyReward:
 
 STATE_FILE = "style_reward.json"
 # A resumed run must train the same thing: same code, data, base weights and judge.
-RESUME_BINDING = ("source_sha256", "suite_sha256", "base_replies_sha256", "judge_backend", "judge_metadata",
+RESUME_BINDING = ("source_sha256", "suite_sha256", "base_replies_sha256", "canon_sha256", "judge_backend", "judge_metadata",
                   "base_files_sha256", "precision", "reward_spec", "seed", "group_size", "prompts_per_step",
                   "steps", "hyperparameters", "packages", "world_size")
 
@@ -192,7 +197,10 @@ def preflight(args):
     if args.tiny:
         return None
     train, test = load_suite(args.suite)
-    return train, test, load_base_replies(args.base_replies, args.suite)
+    # v4 trains one LoRA per character: the two voices pulled the shared adapter in opposite directions.
+    train, test = select_character(train, args.character), select_character(test, args.character)
+    canon = load_canon(args.canon) if args.canon else None
+    return train, test, load_base_replies(args.base_replies, args.suite), canon
 
 
 def run(args, checked, session, sync):
@@ -239,7 +247,7 @@ def run(args, checked, session, sync):
         else:
             from characore.stub_judge import StubJudge
             judge = StubJudge()
-        train, _, base_replies = checked
+        train, _, base_replies, canon = checked
         completion_length = args.max_new_tokens
         limit = model.config.max_position_embeddings
         rows = [dict(prompt=render_prompt(tokenizer, r, completion_length, limit), row_id=r["id"],
@@ -247,7 +255,7 @@ def run(args, checked, session, sync):
                      speaker=r["speaker"], line=r["line"]) for r in train]
         reward_dir = args.output / "reward" if sync.world == 1 else args.output / "reward" / f"rank{sync.rank}"
         reward = StyleReward(judge, reward_dir, args.group_size, workers=args.judge_workers,
-                             resume=args.resume, sync=sync)
+                             resume=args.resume, sync=sync, canon=canon)
         targets = ["q_proj", "k_proj", "v_proj", "o_proj"]
     generation_batch = args.prompts_per_step * args.group_size
     if generation_batch % (args.micro_batch * sync.world):
@@ -262,7 +270,9 @@ def run(args, checked, session, sync):
                      ddp_timeout=DDP_TIMEOUT, ddp_find_unused_parameters=False,  # every LoRA tensor gets a gradient
                      num_generations=args.group_size, max_completion_length=completion_length,
                      learning_rate=5e-4 if args.tiny else args.learning_rate, beta=.04, loss_type="grpo",
-                     scale_rewards="group", temperature=1.0, top_p=1.0, top_k=0,
+                     # Batch std: a group whose margins differ only slightly is not blown up to unit
+                     # variance, which is how a near-tie group amplified the opener gain in grpo_style_04.
+                     scale_rewards=SCALE_REWARDS, temperature=1.0, top_p=1.0, top_k=0,
                      logging_steps=1, save_strategy="no" if args.tiny else "steps", save_steps=args.save_steps,
                      save_total_limit=2, eval_strategy="no", report_to="none",
                      seed=args.seed, data_seed=args.seed, use_cpu=args.device == "cpu",
@@ -354,12 +364,15 @@ def run(args, checked, session, sync):
         suite_sha256=None if args.tiny else digest(args.suite / "freeze.json"),
         base_replies_sha256=None if args.tiny else digest(args.base_replies / "freeze.json"),
         judge_backend=None if args.tiny else args.judge_backend,
-        judge_reliability="uncalibrated: no human agreement measured for this task",
+        judge_reliability="uncalibrated: human agreement measured on 100 label_01 pairs only",
+        character=None if args.tiny else args.character,
+        canon_sha256=None if args.tiny else canon_identity(args.canon),
         judge_metadata=judge.metadata if judge else None,
         base_files_sha256={p.name: digest(p) for p in sorted((args.output / "tiny_base" if args.tiny else Path(args.base)).iterdir()) if p.is_file()},
         seed=args.seed, group_size=args.group_size, prompts_per_step=args.prompts_per_step, steps=args.steps,
         hyperparameters=dict(learning_rate=args.learning_rate, lora_rank=args.lora_rank, micro_batch=args.micro_batch,
-                             max_new_tokens=args.max_new_tokens),
+                             max_new_tokens=args.max_new_tokens, scale_rewards=SCALE_REWARDS,
+                             character=args.character),
         config=cfg.to_dict(), reward_spec=REWARD_SPEC if not args.tiny else "synthetic token-ID mean",
         packages={p: importlib.metadata.version(p) for p in ("torch", "transformers", "trl", "peft", "accelerate")},
         world_size=sync.world)
@@ -450,6 +463,9 @@ def main():
     parser.add_argument("--base")
     parser.add_argument("--suite", type=Path)
     parser.add_argument("--base-replies", type=Path)
+    parser.add_argument("--character", choices=("rei", "asuka"),
+                        help="train one character's rows only (one LoRA per character); omit for both")
+    parser.add_argument("--canon", type=Path, help="frozen canon reference set shown to the judge as evidence E4")
     parser.add_argument("--judge-backend", choices=("api", "stub"), default="api")
     parser.add_argument("--judge-workers", type=int, default=8)
     parser.add_argument("--env-file", type=Path)

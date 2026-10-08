@@ -59,7 +59,9 @@ def make_trainer_class():
             metrics = self.style_reward.last_metrics
             self._metrics[mode]["style/rejected_groups"].append(len(rejected))
             for key in ("hard_violation_rate", "style_score_mean", "length_mean", "marker_rate",
-                        "asuka_benxiaojie_open_rate", "win_rate_vs_base", "order_inconsistent_rate",
+                        "asuka_benxiaojie_open_rate", "stock_opener_rate", "reward_mean", "margin_mean",
+                        "margin_positive_rate", "policy_prn_mean", "base_prn_mean", "identical_rate",
+                        "win_rate_vs_base", "order_inconsistent_rate",
                         "judge_calls", "reused_requests", "varied_groups"):
                 if metrics.get(key) is not None:
                     self._metrics[mode][f"style/{key}"].append(float(metrics[key]))

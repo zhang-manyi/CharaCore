@@ -9,8 +9,11 @@ StyleReward, so its rejection and reuse counts match training.
 
 Gate (written to summary.json, decision left to the operator):
   at least 60% of usable groups have non-identical rewards,
-  the starting win rate vs base lies in [0.1, 0.9], and
+  the starting mean margin vs base lies in [-0.5, 0.5] (the sampled base
+    against its own greedy reply should sit near 0), and
   at most 20% of groups are rejected.
+The verdict win rate is reported but no longer gated; the reward ignores it.
+--character restricts the survey to one character's rows, as a per-character run would see them.
 """
 import argparse
 import json
@@ -21,13 +24,14 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from characore.canon import canon_identity, load_canon
 from characore.protocol import dump
-from characore.style_data import load_base_replies, load_suite
+from characore.style_data import load_base_replies, load_suite, select_character
 from characore.style_rewards import clean_reply, hard_violation, style_score
 
 # max_rejected_share: varied_share and the win rate only see usable groups, so without it a survey
 # that rejected most groups still passed (survey_style_01: 13/20 rejected, gate passed).
-GATE = dict(min_varied_share=0.6, win_rate_range=(0.1, 0.9), max_rejected_share=0.2)
+GATE = dict(min_varied_share=0.6, margin_range=(-0.5, 0.5), max_rejected_share=0.2)
 
 
 def summarize(row, raws):
@@ -49,15 +53,15 @@ def overall(records, judged=None):
                hard_rate=sum(r["hard"] for r in records) / max(sum(r["samples"] for r in records), 1),
                style_mean=sum(r["style_mean"] for r in records) / n if n else None,
                by_character={c: sum(r["character"] == c for r in records) for c in ("rei", "asuka")},
-               claim="sampling diversity and rule scores; win rate only if a judge ran")
+               claim="sampling diversity and rule scores; margin and win rate only if a judge ran")
     if judged:
         usable = judged["groups"] - judged["rejected_groups"]
         varied_share = judged["varied_groups"] / usable if usable else None
         rejected_share = judged["rejected_groups"] / judged["groups"] if judged["groups"] else None
-        win = judged["win_rate_vs_base"]
+        margin = judged["margin_mean"]
         out.update(judged=judged, varied_share=varied_share, rejected_share=rejected_share,
                    gate=dict(GATE, passed=varied_share is not None and varied_share >= GATE["min_varied_share"]
-                             and win is not None and GATE["win_rate_range"][0] <= win <= GATE["win_rate_range"][1]
+                             and margin is not None and GATE["margin_range"][0] <= margin <= GATE["margin_range"][1]
                              and rejected_share is not None and rejected_share <= GATE["max_rejected_share"]))
     return out
 
@@ -79,6 +83,8 @@ def main():
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--allow-api", action="store_true")
     parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument("--character", choices=("rei", "asuka"))
+    parser.add_argument("--canon", type=Path, help="frozen canon reference set for the judge (evidence E4)")
     args = parser.parse_args()
     if args.samples < 2 or args.temperature <= 0 or args.max_new_tokens < 1:
         parser.error("need samples >= 2, temperature > 0, max-new-tokens >= 1")
@@ -87,6 +93,7 @@ def main():
     if args.judge_backend == "api" and not args.allow_api:
         parser.error("API judging requires --allow-api")
     train, _ = load_suite(args.suite)
+    train = select_character(train, args.character)
     base_replies = load_base_replies(args.base_replies, args.suite) if args.base_replies else None
     args.output.mkdir(parents=True, exist_ok=False)
 
@@ -124,13 +131,15 @@ def main():
             from characore.stub_judge import StubJudge
             judge = StubJudge()
         chosen = random.Random(args.seed).sample(train, min(args.judge_rows, len(train)))
-        reward = StyleReward(judge, args.output / "judge", args.samples)
+        reward = StyleReward(judge, args.output / "judge", args.samples,
+                             canon=load_canon(args.canon) if args.canon else None)
         expand = lambda key: [r[key] for r in chosen for _ in range(args.samples)]
         reward(prompts=expand("id"), completions=[c for r in chosen for c in raws[r["id"]]],
                row_id=expand("id"), character=expand("character"),
                base_reply=[base_replies[r["id"]] for r in chosen for _ in range(args.samples)],
                situation=expand("situation"), speaker=expand("speaker"), line=expand("line"))
-        judged = dict(reward.last_metrics, judge=judge.metadata, calls_made=judge.calls)
+        judged = dict(reward.last_metrics, judge=judge.metadata, calls_made=judge.calls,
+                      canon_sha256=canon_identity(args.canon))
     summary = overall(records, judged)
     summary["cuda_peak_allocated_bytes"] = torch.cuda.max_memory_allocated() if device != "cpu" else None
     dump(args.output / "summary.json", summary)

@@ -6,28 +6,35 @@ import tempfile
 import threading
 import unittest
 
+from characore.canon import canon_identity, load_canon
 from characore.judge import (ATTR_PROTOCOL, PROTOCOL, make_attribution_request, make_request,
                              parse_attribution, parse_response)
 from characore.persona import CHARACTERS, persona_identity, policy_messages
 from characore.protocol import digest, dump
 from characore.stub_judge import StubJudge
-from characore.style_data import load_base_replies, load_suite
+from characore.style_data import load_base_replies, load_suite, select_character
 from characore.style_rewards import (StyleReward, clean_reply, hard_violation, pair_outcome,
                                      rule_metrics, style_score)
 from characore.style_trainer import apply_rejection
 
 ROOT = Path(__file__).resolve().parents[1]
-SUITE = ROOT / "experiments/style_v1"
+SUITE = ROOT / "experiments/style_v2"  # style_v1 rows rebound to the v4 cards
+CANON = ROOT / "experiments/canon_v1"
 ROW = dict(id="T01-L1-rei", template="T01", character="rei", situation="放学后的教室。", speaker="同班同学",
            line="你带伞了吗？")
 IDS = ["E1", "E2", "E3", "candidate:A", "candidate:B"]
 
 
 def judgement(winner="A", r=3, protocol=PROTOCOL):
+    """The displayed winner scores P=4 and the loser P=2 (a tie: both 3), so the P+R+N margin is +-2 per order."""
     dim = lambda score: dict(status="scored", score=score, reason="ok", evidence_ids=["E1"])
-    side = lambda: {"P": dim(3), "R": dim(r), "N": dim(3)}
-    return dict(protocol=protocol, winner=winner, scores={"A": side(), "B": side()}, reason="ok",
+    p = lambda s: 3 if winner not in ("A", "B") else (4 if s == winner else 2)
+    side = lambda s: {"P": dim(p(s)), "R": dim(r), "N": dim(3)}
+    return dict(protocol=protocol, winner=winner, scores={"A": side("A"), "B": side("B")}, reason="ok",
                 preference_evidence_ids=[] if winner in ("tie", "insufficient") else ["E1"])
+
+
+WIN = round(4 / 24, 6)  # policy +2 in both orders, over 2 orders x 12
 
 
 def call(winner, mapping, r=3, status="ok"):
@@ -153,9 +160,21 @@ class RuleTests(unittest.TestCase):
         self.assertEqual(hard_violation("...嗯...嗯...", "rei"), "catchphrase_cap")
         self.assertEqual(clean_reply("嗯..."), "嗯...")  # text itself is never rewritten
 
-    def test_clean_reply_strips_only_empty_think(self):
+    def test_clean_reply_strips_empty_think_and_outer_quotes(self):
         self.assertEqual(clean_reply("<think>\n\n</think>\n\n……没有。 "), "……没有。")
         self.assertEqual(clean_reply("<think>想</think>没有"), "<think>想</think>没有")
+        self.assertEqual(clean_reply("「没有带。」"), "没有带。")
+        self.assertEqual(clean_reply("<think></think>「 没有带。」"), "没有带。")
+        # Only a wrapper around the whole reply goes; inner or partial quotes stay.
+        self.assertEqual(clean_reply("他说「走」。"), "他说「走」。")
+        self.assertEqual(clean_reply("「走」「留」"), "「走」「留」")
+        self.assertEqual(clean_reply("「」"), "「」")
+
+    def test_outer_quotes_do_not_make_replies_differ(self):
+        reward = StyleRewardTests.reward(self, ScriptedJudge())
+        values = reward(**batch(["「……base」", "……base"], base="「……base」"))
+        self.assertEqual(values, [0.0, 0.0])
+        self.assertEqual(reward.totals["skipped_identical"], 2)
 
     def test_rule_metrics_counts(self):
         m = rule_metrics(["……没有带。", "作为AI我不知道"], ["rei", "rei"])
@@ -223,30 +242,80 @@ class JudgeProtocolTests(unittest.TestCase):
         self.assertIn(ROW["line"], text)
         self.assertNotIn(CHARACTERS["asuka"]["card"], text)
         self.assertNotIn(ROW["id"], text)
+        canon = load_canon(CANON)
+        self.assertFalse(any(e["line"] in text for entries in canon.values() for e in entries))
+
+    def test_canon_is_judge_evidence_e4_only_with_canon(self):
+        canon = load_canon(CANON)
+        plain = make_request(ROW, {"A": "x", "B": "y"})
+        with_canon = make_request(ROW, {"A": "x", "B": "y"}, canon=canon)
+        data = json.loads(with_canon["messages"][1]["content"])
+        self.assertEqual([e["id"] for e in data["evidence"]], ["E1", "E2", "E3", "E4"])
+        self.assertIn(canon["rei"][0]["line"], data["evidence"][3]["text"])
+        self.assertNotIn(canon["asuka"][0]["line"], data["evidence"][3]["text"])  # own character only
+        self.assertEqual(with_canon["allowed_evidence_ids"], ["E1", "E2", "E3", "E4", "candidate:A", "candidate:B"])
+        self.assertEqual(plain["allowed_evidence_ids"], IDS)
+        system = with_canon["messages"][0]["content"]
+        self.assertIn("E4 原作参考台词", system)
+        self.assertNotIn("你对原作", system)  # memory is replaced by the shown lines
+        self.assertIn("你对原作", plain["messages"][0]["content"])
+        reply = dict(judgement(), preference_evidence_ids=["E4"])
+        self.assertEqual(parse_response(json.dumps(reply), with_canon["allowed_evidence_ids"])["call_status"], "ok")
+        self.assertEqual(parse_response(json.dumps(reply), plain["allowed_evidence_ids"])["call_status"], "parse_error")
+
+    def test_canon_freeze_is_enforced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "canon"
+            copy.mkdir()
+            for name in ("canon.json", "freeze.json"):
+                (copy / name).write_bytes((CANON / name).read_bytes())
+            self.assertEqual(set(load_canon(copy)), {"rei", "asuka"})
+            (copy / "canon.json").write_bytes((CANON / "canon.json").read_bytes() + b"\n")
+            with self.assertRaisesRegex(ValueError, "does not match"):
+                load_canon(copy)
+        self.assertIsNone(canon_identity(None))
+        self.assertEqual(canon_identity(CANON), digest(CANON / "canon.json"))
 
 
 class PairOutcomeTests(unittest.TestCase):
     AB, BA = {"A": "A", "B": "B"}, {"A": "B", "B": "A"}
 
-    def test_mirrored_winners_agree(self):
-        self.assertEqual(pair_outcome(call("A", self.AB), call("B", self.BA)), (1.0, False, False))
-        self.assertEqual(pair_outcome(call("B", self.AB), call("A", self.BA)), (0.0, False, False))
-        self.assertEqual(pair_outcome(call("tie", self.AB), call("tie", self.BA)), (0.5, False, False))
+    def outcome(self, ab, ba):
+        o = pair_outcome(ab, ba)
+        return o["margin"], o["verdict"], o["order_inconsistent"]
 
-    def test_order_disagreement_is_a_flagged_tie(self):
-        # Position-following (A, A) and a tie in one order only both mean the judge cannot separate the pair.
-        for ab, ba in ((call("A", self.AB), call("A", self.BA)), (call("tie", self.AB), call("B", self.BA))):
-            self.assertEqual(pair_outcome(ab, ba), (0.5, False, True))
+    def test_mirrored_winners_agree(self):
+        self.assertEqual(self.outcome(call("A", self.AB), call("B", self.BA)), (WIN, 1.0, False))
+        self.assertEqual(self.outcome(call("B", self.AB), call("A", self.BA)), (-WIN, 0.0, False))
+        self.assertEqual(self.outcome(call("tie", self.AB), call("tie", self.BA)), (0.0, 0.5, False))
+        o = pair_outcome(call("A", self.AB), call("B", self.BA))
+        self.assertEqual((o["policy"], o["base"]), ([10, 10], [8, 8]))
+
+    def test_margin_maps_scores_back_through_the_order(self):
+        # BA shows the base reply first: displayed A's scores belong to the base.
+        ab = call("tie", self.AB)
+        ba = call("tie", self.BA)
+        ba["final"]["judgement"]["scores"]["A"]["N"]["score"] = 0  # base, shown first, scores N=0 in BA
+        o = pair_outcome(ab, ba)
+        self.assertEqual((o["policy"], o["base"], o["margin"]), ([9, 9], [9, 6], round(3 / 24, 6)))
+
+    def test_order_disagreement_is_logged_and_margins_cancel(self):
+        # Position-following (A, A): +2 in AB and -2 in BA average to 0; the verdict is a flagged tie.
+        self.assertEqual(self.outcome(call("A", self.AB), call("A", self.BA)), (0.0, 0.5, True))
+        self.assertEqual(self.outcome(call("tie", self.AB), call("B", self.BA)), (round(2 / 24, 6), 0.5, True))
 
     def test_failure_and_insufficient_are_rejected(self):
+        partial = call("A", self.AB)
+        partial["final"]["judgement"]["scores"]["B"]["R"].update(status="insufficient", score=None)
         for ab, ba, reason in ((call("A", self.AB, status="parse_error"), call("B", self.BA), "AB parse_error"),
-                               (call("insufficient", self.AB), call("insufficient", self.BA), "insufficient")):
+                               (call("insufficient", self.AB), call("insufficient", self.BA), "insufficient"),
+                               (partial, call("B", self.BA), "insufficient")):
             with self.assertRaisesRegex(ValueError, reason):
                 pair_outcome(ab, ba)
 
     def test_off_topic_needs_both_orders(self):
-        self.assertTrue(pair_outcome(call("B", self.AB, r=1), call("A", self.BA, r=0))[1])
-        self.assertFalse(pair_outcome(call("B", self.AB, r=1), call("A", self.BA, r=3))[1])
+        self.assertTrue(pair_outcome(call("B", self.AB, r=1), call("A", self.BA, r=0))["off_topic"])
+        self.assertFalse(pair_outcome(call("B", self.AB, r=1), call("A", self.BA, r=3))["off_topic"])
 
 
 class StyleRewardTests(unittest.TestCase):
@@ -259,9 +328,12 @@ class StyleRewardTests(unittest.TestCase):
         judge = ScriptedJudge("A", "B")  # policy wins in both orders
         reward = self.reward(judge)
         values = reward(**batch(["……没有带。", "……没有带。", "作为AI我不知道", "……base"]))
-        win = round(0.7 + 0.3 * style_score("……没有带。", "rei"), 6)
-        self.assertEqual(values, [win, win, -1.0, round(0.35 + 0.3 * style_score("……base", "rei"), 6)])
+        # The rule style score no longer enters the value: margin, hard -1, identical 0.
+        self.assertEqual(values, [WIN, WIN, -1.0, 0.0])
         self.assertEqual(reward.take_rejected(), [])
+        self.assertEqual(reward.last_metrics["margin_mean"], WIN)
+        self.assertEqual(reward.last_metrics["win_rate_vs_base"], 1.0)
+        self.assertEqual(reward.last_metrics["identical_rate"], 0.25)
         # Two identical policy replies share one AB and one BA call.
         self.assertEqual(judge.calls, 2)
         self.assertEqual(reward.last_metrics["reused_requests"], 2)
@@ -269,11 +341,25 @@ class StyleRewardTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             reward.take_rejected()
 
+    def test_canon_reaches_every_judge_request(self):
+        seen = []
+
+        class Recording(ScriptedJudge):
+            def __call__(self, messages):
+                seen.append([e["id"] for e in json.loads(messages[1]["content"])["evidence"]])
+                return super().__call__(messages)
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        reward = StyleReward(Recording("A", "B"), Path(tmp.name) / "r", 2, canon=load_canon(CANON))
+        self.assertEqual(reward(**batch(["……没有带。", "……base"])), [WIN, 0.0])
+        self.assertEqual(seen, [["E1", "E2", "E3", "E4"]] * 2)
+
     def test_order_disagreement_scores_tie_and_is_counted(self):
         judge = ScriptedJudge("A", "A")  # winner follows display position: inconsistent
         reward = self.reward(judge)
         values = reward(**batch(["……没有带。", "作为AI我不知道"]))
-        self.assertEqual(values, [round(0.35 + 0.3 * style_score("……没有带。", "rei"), 6), -1.0])
+        self.assertEqual(values, [0.0, -1.0])  # +2 then -2: position bias cancels in the margin
         self.assertEqual(reward.take_rejected(), [])
         self.assertEqual(reward.last_metrics["order_inconsistent"], 1)
         self.assertEqual(reward.last_metrics["order_inconsistent_rate"], 1.0)
@@ -299,7 +385,7 @@ class StyleRewardTests(unittest.TestCase):
         reward = self.reward(judge)
         values = reward(**batch(["……没有带。", "作为AI我不知道"]))
         self.assertEqual(reward.take_rejected(), [])
-        self.assertEqual(values[0], round(0.7 + 0.3 * style_score("……没有带。", "rei"), 6))
+        self.assertEqual(values[0], WIN)
         self.assertEqual(judge.calls, 3)  # AB, BA, and one retry of the first call
 
     def test_batch_must_be_whole_consistent_groups(self):
@@ -480,6 +566,22 @@ class SuiteTests(unittest.TestCase):
         self.assertFalse({r["template"] for r in train} & {r["template"] for r in test})
         for split in (train, test):
             self.assertEqual(sum(r["character"] == "rei" for r in split), len(split) // 2)
+
+    def test_per_character_rows(self):
+        train, test = load_suite(SUITE)
+        for character in CHARACTERS:
+            mine = select_character(train, character), select_character(test, character)
+            self.assertEqual((len(mine[0]), len(mine[1])), (90, 30))
+            self.assertTrue(all(r["character"] == character for split in mine for r in split))
+        self.assertIs(select_character(train, None), train)
+        with self.assertRaises(ValueError):
+            select_character(train, "shinji")
+
+    def test_v4_training_settings(self):
+        train = load_train_script()
+        self.assertEqual(train.SCALE_REWARDS, "batch")
+        self.assertEqual(train.REWARD_SPEC["name"], "style-margin-v4")
+        self.assertEqual(PROTOCOL, "style-v4")
 
     def test_suite_is_regenerated_byte_for_byte(self):
         import scripts.build_style_suite as build

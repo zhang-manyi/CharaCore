@@ -30,6 +30,15 @@ def load_suite(path):
     return train, test
 
 
+def select_character(rows, character):
+    """One character's rows for a per-character run; None keeps both."""
+    if character is None:
+        return rows
+    if character not in CHARACTERS:
+        raise ValueError(f"unknown character {character}")
+    return [r for r in rows if r["character"] == character]
+
+
 def load_base_replies(path, suite):
     """Frozen base replies: every suite row exactly once, bound to this suite's freeze."""
     path = Path(path)
