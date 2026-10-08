@@ -99,7 +99,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/train_grpo.py --base $CHARACORE_POLICY_MOD
 
 `Ctrl-b d` 脱离，`tmux attach -t grpo` 回来。显存不足时加 `--micro-batch 2`。
 
-按角色训练（v4）：加 `--character rei` 或 `--character asuka`，两张卡各跑一个，各开一个 tmux 会话，`--output` 分开。
+按角色训练（v4）：加 `--character rei` 或 `--character asuka`，`--output` 分开。两个角色依次训练，每个都用下面的双卡命令；先训完 Rei 并评测，没问题再训明日香。
 
 裁判 API 的超时、断连、429、5xx 会自动退避重试约 8 分钟。仍然中断（额度耗尽、断电、Ctrl-C）时，用同一条命令加 `--resume` 从最近的检查点（每 10 步一个，`trainer/checkpoint-*`）继续，其余参数必须不变：
 

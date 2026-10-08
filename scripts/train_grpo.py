@@ -1,7 +1,7 @@
 """TRL 0.26.2 GRPO/PEFT entry: speech style vs frozen base replies, or CPU random-model mechanics.
 
---character rei|asuka trains one character's 90 train rows into its own LoRA (the v4 setup: two
-single-GPU runs side by side); without it both characters share one adapter.
+--character rei|asuka trains one character's 90 train rows into its own LoRA (the v4 setup: one
+character after the other, each on both GPUs); without it both characters share one adapter.
 
 One process on one GPU, or Accelerate DDP (accelerate launch --num_processes 2), one GPU per rank. The
 global batch is the same either way: --prompts-per-step prompts x --group-size samples per optimizer
